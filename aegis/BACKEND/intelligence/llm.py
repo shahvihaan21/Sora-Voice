@@ -3,8 +3,8 @@ import datetime
 import re
 from typing import List, Dict
 import httpx
-from core.logger import log
-from core.config import config
+from BACKEND.logger import log
+from BACKEND.config import config
 
 class IntelligenceEngine:
     def __init__(self):

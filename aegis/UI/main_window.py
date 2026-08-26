@@ -7,10 +7,10 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QPoint, pyqtSignal, QObject
 from PyQt6.QtGui import QTextCursor
 
-from ui.styles import MAIN_STYLE
-from ui.widgets.glass_panel import GlassPanel
-from ui.widgets.visualizer import AudioVisualizer, VisualizerMode
-from core.config import config
+from UI.styles import MAIN_STYLE
+from UI.widgets.glass_panel import GlassPanel
+from UI.widgets.visualizer import AudioVisualizer, VisualizerMode
+from BACKEND.config import config
 
 class MainWindow(QMainWindow):
     user_command_submitted = pyqtSignal(str)

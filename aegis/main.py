@@ -8,13 +8,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import qasync
 from PyQt6.QtWidgets import QApplication
 
-from core.logger import log
-from core.config import config
-from ui.main_window import MainWindow
-from ui.widgets.visualizer import VisualizerMode
-from core.speech.stt import SpeechToText
-from core.speech.tts import TextToSpeech
-from core.intelligence.llm import IntelligenceEngine
+from BACKEND.logger import log
+from BACKEND.config import config
+from UI.main_window import MainWindow
+from UI.widgets.visualizer import VisualizerMode
+from BACKEND.speech.stt import SpeechToText
+from BACKEND.speech.tts import TextToSpeech
+from BACKEND.intelligence.llm import IntelligenceEngine
 
 async def main_controller(window: MainWindow):
     """

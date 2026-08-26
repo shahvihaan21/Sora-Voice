@@ -4,8 +4,8 @@ import tempfile
 import ctypes
 import threading
 from typing import Callable, Optional
-from core.logger import log
-from core.config import config
+from BACKEND.logger import log
+from BACKEND.config import config
 
 class TextToSpeech:
     def __init__(self, voice: Optional[str] = None):

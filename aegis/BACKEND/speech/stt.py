@@ -3,8 +3,8 @@ import tempfile
 import os
 from typing import List, Optional, Callable
 import numpy as np
-from core.logger import log
-from core.config import config
+from BACKEND.logger import log
+from BACKEND.config import config
 
 class SpeechToText:
     def __init__(self, wake_words: Optional[List[str]] = None):

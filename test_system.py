@@ -15,7 +15,7 @@ import asyncio
 
 def test_config():
     print("[1/6] Testing Configuration & Environment...")
-    from aegis.core.config import config
+    from aegis.BACKEND.config import config
     assert config.app_name is not None
     assert config.base_dir.exists()
     assert config.logs_dir.exists()
@@ -27,13 +27,13 @@ def test_config():
 
 def test_logger():
     print("[2/6] Testing Logger...")
-    from aegis.core.logger import log
+    from aegis.BACKEND.logger import log
     log.info("Sora self-test logger message.")
     print("  -> Logger initialized and writing successfully.")
 
 async def test_intelligence():
     print("[3/6] Testing Intelligence Engine (Ollama & Offline Fallback)...")
-    from aegis.core.intelligence import llm
+    from aegis.BACKEND.intelligence import llm
     engine = llm.IntelligenceEngine()
     
     # Check Ollama server availability
@@ -51,14 +51,14 @@ async def test_intelligence():
 
 def test_stt():
     print("[4/6] Testing Speech-to-Text Module...")
-    from aegis.core.speech.stt import SpeechToText
+    from aegis.BACKEND.speech.stt import SpeechToText
     stt = SpeechToText()
     print(f"  -> Mic Hardware Detected: {stt.has_microphone}")
     print(f"  -> Recognizer Ready: {stt.recognizer is not None}")
 
 def test_tts():
     print("[5/6] Testing Text-to-Speech Engine...")
-    from aegis.core.speech.tts import TextToSpeech
+    from aegis.BACKEND.speech.tts import TextToSpeech
     tts = TextToSpeech()
     print(f"  -> Voice: {tts.voice}")
     print(f"  -> Speech Rate: {tts.rate}")
@@ -67,8 +67,8 @@ def test_tts():
 def test_ui():
     print("[6/6] Testing UI Components & Styles...")
     from PyQt6.QtWidgets import QApplication
-    from aegis.ui.main_window import MainWindow
-    from aegis.ui.widgets.visualizer import VisualizerMode
+    from aegis.UI.main_window import MainWindow
+    from aegis.UI.widgets.visualizer import VisualizerMode
     
     app = QApplication.instance() or QApplication(sys.argv)
     window = MainWindow()

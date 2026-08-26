@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 from loguru import logger
-from core.config import config
+from BACKEND.config import config
 
 def setup_logger():
     # Remove default handler

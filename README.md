@@ -58,7 +58,7 @@ python test_system.py
 ```
 Sora AI/
 ├── aegis/
-│   ├── core/
+│   ├── BACKEND/
 │   │   ├── config.py             # App configuration, wake words & voice settings
 │   │   ├── logger.py             # Loguru logger with UTF-8 file & console logging
 │   │   ├── intelligence/
@@ -66,7 +66,7 @@ Sora AI/
 │   │   └── speech/
 │   │       ├── stt.py            # Dynamic VAD speech recognition & wake word detection
 │   │       └── tts.py            # Accelerated Edge-TTS + Offline SAPI5 TTS
-│   ├── ui/
+│   ├── UI/
 │   │   ├── main_window.py        # Dark HUD window, pill bar & chat transcript
 │   │   ├── styles.py             # Modern obsidian dark QSS stylesheet
 │   │   └── widgets/
