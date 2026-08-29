@@ -14,14 +14,14 @@ else:
     load_dotenv()
 
 class AppConfig(BaseModel):
-    app_name: str = "Sora AI"
+    app_name: str = "Jarvis"
     version: str = "2.0.0"
     debug: bool = True
     
     # UI Customization
     theme: str = "dark"
-    accent_color: str = "#a855f7"  # Purple/Violet gradient accent
-    secondary_color: str = "#38bdf8" # Cyan/Blue
+    accent_color: str = "#ff1744"  # Neon red accent
+    secondary_color: str = "#ffea00" # Neon yellow highlight
     
     # Local AI (Ollama)
     ollama_host: str = Field(default_factory=lambda: os.getenv("OLLAMA_HOST", "http://localhost:11434").strip())
@@ -31,11 +31,11 @@ class AppConfig(BaseModel):
     wake_words: List[str] = Field(
         default_factory=lambda: [
             w.strip().lower() 
-            for w in os.getenv("WAKE_WORDS", "sora,hey sora").split(",") 
+            for w in os.getenv("WAKE_WORDS", "jarvis,hey jarvis").split(",") 
             if w.strip()
         ]
     )
-    tts_voice: str = Field(default_factory=lambda: os.getenv("TTS_VOICE", "en-US-AriaNeural").strip())
+    tts_voice: str = Field(default_factory=lambda: os.getenv("TTS_VOICE", "en-US-GuyNeural").strip())
     tts_rate: str = Field(default_factory=lambda: os.getenv("TTS_RATE", "+15%").strip())
     sample_rate: int = 16000
     

@@ -1,4 +1,4 @@
-# QSS Stylesheet for Sora AI Desktop Assistant (Replicating Context Image)
+# QSS Stylesheet for Jarvis Desktop Assistant
 
 MAIN_STYLE = """
 /* Global Base */
@@ -14,21 +14,21 @@ QWidget {
 
 /* Glass Panel Widget - Rounded Obsidian Floating Window */
 #GlassPanel {
-    background-color: rgba(12, 16, 25, 0.96);
+    background-color: rgba(15, 5, 10, 0.97);
     border-radius: 22px;
-    border: 1px solid rgba(255, 255, 255, 0.09);
+    border: 1px solid rgba(255, 23, 68, 0.28);
 }
 
 /* Header Area & Window Controls */
 QLabel#HeaderBrand {
-    color: #f8fafc;
+    color: #ff1744;
     font-size: 15px;
     font-weight: 700;
     letter-spacing: 1.5px;
 }
 
 QLabel#ActionHint {
-    color: #94a3b8;
+    color: #ff8a9f;
     font-size: 12px;
     font-style: italic;
 }
@@ -43,27 +43,27 @@ QLabel#StatusBadge {
 }
 
 QLabel#StatusBadge[mode="IDLE"] {
-    background-color: rgba(56, 189, 248, 0.12);
-    color: #38bdf8;
-    border: 1px solid rgba(56, 189, 248, 0.35);
+    background-color: rgba(255, 23, 68, 0.14);
+    color: #ff526f;
+    border: 1px solid rgba(255, 23, 68, 0.5);
 }
 
 QLabel#StatusBadge[mode="LISTENING"] {
-    background-color: rgba(34, 197, 94, 0.22);
-    color: #4ade80;
-    border: 1px solid rgba(34, 197, 94, 0.65);
+    background-color: rgba(255, 234, 0, 0.16);
+    color: #ffea00;
+    border: 1px solid rgba(255, 234, 0, 0.7);
 }
 
 QLabel#StatusBadge[mode="THINKING"] {
-    background-color: rgba(168, 85, 247, 0.22);
-    color: #c084fc;
-    border: 1px solid rgba(168, 85, 247, 0.65);
+    background-color: rgba(255, 23, 68, 0.22);
+    color: #ff6b81;
+    border: 1px solid rgba(255, 23, 68, 0.7);
 }
 
 QLabel#StatusBadge[mode="SPEAKING"] {
-    background-color: rgba(6, 182, 212, 0.22);
-    color: #22d3ee;
-    border: 1px solid rgba(6, 182, 212, 0.65);
+    background-color: rgba(255, 234, 0, 0.2);
+    color: #fff176;
+    border: 1px solid rgba(255, 234, 0, 0.7);
 }
 
 /* Minimalist Window Control Buttons (— □ ✕) */
@@ -88,13 +88,13 @@ QPushButton#BtnClose:hover {
 
 /* Chat Transcript / Conversation View */
 QTextEdit#ChatDisplay {
-    background-color: rgba(15, 20, 31, 0.45);
+    background-color: rgba(25, 5, 12, 0.55);
     border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: 14px;
     color: #f1f5f9;
     font-size: 13px;
     padding: 12px 14px;
-    selection-background-color: #8b5cf6;
+    selection-background-color: #d50032;
 }
 
 /* Smooth Minimal Scrollbar */
@@ -117,36 +117,36 @@ QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
 
 /* Bottom Pill Input Container (Exact Reference Replica) */
 #PillInputContainer {
-    background-color: rgba(22, 28, 42, 0.95);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: rgba(35, 7, 15, 0.97);
+    border: 1px solid rgba(255, 23, 68, 0.3);
     border-radius: 27px;
 }
 
 #PillInputContainer[mode="LISTENING"] {
-    border: 1px solid rgba(34, 197, 94, 0.55);
-    background-color: rgba(18, 36, 32, 0.95);
+    border: 1px solid rgba(255, 234, 0, 0.65);
+    background-color: rgba(40, 32, 4, 0.95);
 }
 
 #PillInputContainer[mode="THINKING"] {
-    border: 1px solid rgba(168, 85, 247, 0.55);
-    background-color: rgba(28, 22, 44, 0.95);
+    border: 1px solid rgba(255, 23, 68, 0.65);
+    background-color: rgba(48, 7, 17, 0.95);
 }
 
 #PillInputContainer[mode="SPEAKING"] {
-    border: 1px solid rgba(6, 182, 212, 0.55);
-    background-color: rgba(16, 30, 42, 0.95);
+    border: 1px solid rgba(255, 234, 0, 0.65);
+    background-color: rgba(40, 32, 4, 0.95);
 }
 
 #PillInputContainer:focus-within {
-    border: 1px solid rgba(168, 85, 247, 0.6);
-    background-color: rgba(25, 32, 48, 0.98);
+    border: 1px solid rgba(255, 23, 68, 0.8);
+    background-color: rgba(50, 8, 18, 0.98);
 }
 
 /* Left '+' Plus Action Button */
 QPushButton#BtnPlus {
     background-color: transparent;
     border: none;
-    color: #94a3b8;
+    color: #ff8a9f;
     font-size: 22px;
     font-weight: 300;
     border-radius: 18px;
@@ -154,9 +154,9 @@ QPushButton#BtnPlus {
 }
 
 QPushButton#BtnPlus[active="true"] {
-    background-color: rgba(34, 197, 94, 0.25);
-    color: #4ade80;
-    border: 1px solid rgba(34, 197, 94, 0.6);
+    background-color: rgba(255, 234, 0, 0.25);
+    color: #ffea00;
+    border: 1px solid rgba(255, 234, 0, 0.7);
     font-size: 16px;
 }
 
@@ -166,8 +166,8 @@ QPushButton#BtnPlus:hover {
 }
 
 QPushButton#BtnPlus:pressed {
-    color: #c084fc;
-    background-color: rgba(168, 85, 247, 0.15);
+    color: #ff1744;
+    background-color: rgba(255, 23, 68, 0.18);
 }
 
 /* Center Text Input */
@@ -186,7 +186,7 @@ QLineEdit#PillInput::placeholder {
 
 /* Right Circular Gradient '↑' Send Button */
 QPushButton#BtnSendGradient {
-    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #a855f7, stop:0.5 #818cf8, stop:1 #6366f1);
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #ff1744, stop:0.5 #ff5252, stop:1 #ffea00);
     border: none;
     border-radius: 20px;
     color: #ffffff;
@@ -195,10 +195,10 @@ QPushButton#BtnSendGradient {
 }
 
 QPushButton#BtnSendGradient:hover {
-    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #c084fc, stop:0.5 #9333ea, stop:1 #4f46e5);
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #ff4569, stop:0.5 #ff1744, stop:1 #fff000);
 }
 
 QPushButton#BtnSendGradient:pressed {
-    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #9333ea, stop:1 #4338ca);
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #d50032, stop:1 #ffea00);
 }
 """

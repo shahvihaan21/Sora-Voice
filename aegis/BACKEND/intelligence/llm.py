@@ -13,13 +13,13 @@ class IntelligenceEngine:
         self.conversation_history: List[Dict[str, str]] = []
         
         self.system_instruction = (
-            "You are Sora, a lightning-fast, ultra-smart, elegant, and friendly AI desktop assistant. "
+            "You are Jarvis, a lightning-fast, ultra-smart, elegant, and friendly AI desktop assistant. "
             "You provide concise, highly accurate, and conversational answers. "
             "Speak naturally without markdown formatting, bullet symbols, or robotic phrasing. "
             "Keep voice responses crisp, direct, and under 2-3 sentences unless detailed explanation is requested."
         )
         
-        log.info(f"Initialized Sora AI Engine (Ollama: {self.model_id} @ {self.host})")
+        log.info(f"Initialized Jarvis AI Engine (Ollama: {self.model_id} @ {self.host})")
 
     async def is_ollama_available(self) -> bool:
         """Check if local Ollama server is running."""
@@ -38,7 +38,7 @@ class IntelligenceEngine:
         now = datetime.datetime.now()
         
         if any(w in query for w in ["hello", "hi", "hey", "greetings"]):
-            return "Hello! I am Sora, your AI assistant. How can I help you today?"
+            return "Hello! I am Jarvis, your AI assistant. How can I help you today?"
         
         if "time" in query:
             return f"It is currently {now.strftime('%I:%M %p')}."
@@ -47,10 +47,10 @@ class IntelligenceEngine:
             return f"Today is {now.strftime('%A, %B %d, %Y')}."
             
         if "status" in query or "system" in query:
-            return "Sora core systems, audio visualizer, and UI are fully operational."
+            return "Jarvis core systems, audio visualizer, and UI are fully operational."
             
         if "who are you" in query or "what is your name" in query:
-            return "I am Sora, your next-generation desktop AI assistant."
+            return "I am Jarvis, your next-generation desktop AI assistant."
             
         if "help" in query:
             return "You can ask me questions, give voice commands, or type in the prompt bar. Make sure Ollama is running for full generative AI capability."
@@ -81,7 +81,7 @@ class IntelligenceEngine:
         if not user_input or not user_input.strip():
             return
 
-        log.info(f"Generating streaming Sora ({self.model_id}) response for: {user_input}")
+        log.info(f"Generating streaming Jarvis ({self.model_id}) response for: {user_input}")
 
         now = datetime.datetime.now()
         time_str = now.strftime("%I:%M %p, %A, %B %d, %Y")
@@ -147,7 +147,7 @@ class IntelligenceEngine:
                             
                         if full_reply.strip():
                             self._save_history(user_input, full_reply.strip())
-                            log.info(f"Sora response complete: {full_reply.strip()}")
+                            log.info(f"Jarvis response complete: {full_reply.strip()}")
                         return
                     elif response.status_code == 404:
                         msg = f"Model '{self.model_id}' was not found in Ollama. Please run 'ollama pull {self.model_id}'."

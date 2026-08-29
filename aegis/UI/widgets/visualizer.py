@@ -60,13 +60,13 @@ class AudioVisualizer(QWidget):
         aura_gradient = QRadialGradient(center_x, mid_y, aura_rad)
         
         if self.mode == VisualizerMode.LISTENING:
-            glow_col = QColor(6, 182, 212, int(25 + 30 * self.pulse))   # Cyan glow
+            glow_col = QColor(255, 234, 0, int(35 + 35 * self.pulse))   # Neon yellow glow
         elif self.mode == VisualizerMode.THINKING:
-            glow_col = QColor(168, 85, 247, int(25 + 35 * self.pulse))  # Violet glow
+            glow_col = QColor(255, 23, 68, int(30 + 40 * self.pulse))  # Neon red glow
         elif self.mode == VisualizerMode.SPEAKING:
-            glow_col = QColor(139, 92, 246, int(35 + 40 * self.pulse))  # Electric purple glow
+            glow_col = QColor(255, 23, 68, int(40 + 45 * self.pulse))  # Electric red glow
         else:
-            glow_col = QColor(56, 189, 248, int(15 + 15 * self.pulse))  # Soft sky blue
+            glow_col = QColor(255, 82, 82, int(20 + 20 * self.pulse))  # Soft red glow
             
         aura_gradient.setColorAt(0.0, glow_col)
         aura_gradient.setColorAt(0.7, QColor(glow_col.red(), glow_col.green(), glow_col.blue(), int(glow_col.alpha() * 0.3)))
@@ -85,7 +85,7 @@ class AudioVisualizer(QWidget):
         }
         amp_global = amp_map.get(self.mode, 0.7)
 
-        # 2. Render Layered Siri / Sora Waveform Ribbons per mode
+        # 2. Render layered Jarvis waveform ribbons per mode
         if self.mode == VisualizerMode.LISTENING:
             # Listening: Emerald / Aquamarine / Cyan acoustic sensitivity
             layers = [

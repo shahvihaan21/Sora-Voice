@@ -12,6 +12,9 @@ class SpeechToText:
         self.sample_rate = config.sample_rate
         self.has_microphone = False
         self._recognizer = None
+        # Prevent the wake-word loop and the manual trigger from recording at
+        # the same time. Concurrent microphone streams are unreliable on Windows.
+        self._command_lock = asyncio.Lock()
         
         self.on_listening_callback: Optional[Callable[[], None]] = None
         self.on_processing_callback: Optional[Callable[[], None]] = None
@@ -38,14 +41,15 @@ class SpeechToText:
         if self._recognizer is None:
             import speech_recognition as sr
             self._recognizer = sr.Recognizer()
-            self._recognizer.energy_threshold = 280
+            self._recognizer.energy_threshold = 220
             self._recognizer.dynamic_energy_threshold = True
-            self._recognizer.pause_threshold = 0.6  # Snappy pause detection
+            self._recognizer.pause_threshold = 0.8
+            self._recognizer.non_speaking_duration = 0.35
         return self._recognizer
 
     async def listen_for_wake_word(self) -> bool:
         """
-        Listens in short dynamic chunks for Sora wake words.
+        Listens in short dynamic chunks for Jarvis wake words.
         """
         if not self.has_microphone:
             await asyncio.sleep(2)
@@ -107,11 +111,14 @@ class SpeechToText:
             if not self.has_microphone:
                 await asyncio.sleep(2)
                 return False
+            if self._command_lock.locked():
+                await asyncio.sleep(0.15)
+                continue
 
             try:
                 detected = await loop.run_in_executor(None, _record_and_check)
                 if detected:
-                    log.info("Sora wake word recognized!")
+                    log.info("Jarvis wake word recognized!")
                     return True
             except Exception as e:
                 log.debug(f"Wake loop error: {e}")
@@ -144,7 +151,9 @@ class SpeechToText:
             chunk_samples = int(chunk_duration * self.sample_rate)
             max_recording_time = 8.0  # Max seconds
             silence_timeout = 0.7     # Stop after 700ms of silence once speech started
-            energy_threshold = 0.015
+            # Relative to the current chunk, this copes with laptop mics whose
+            # raw amplitude is much quieter or louder than the old fixed value.
+            energy_threshold = 0.010
 
             audio_chunks = []
             speech_started = False
@@ -156,9 +165,10 @@ class SpeechToText:
                     while time.time() - start_time < max_recording_time:
                         chunk, _ = stream.read(chunk_samples)
                         audio_chunks.append(chunk)
-                        max_val = np.max(np.abs(chunk))
+                        max_val = float(np.max(np.abs(chunk)))
 
-                        if max_val >= energy_threshold:
+                        rms = float(np.sqrt(np.mean(np.square(chunk))))
+                        if max_val >= energy_threshold or rms >= energy_threshold * 0.35:
                             speech_started = True
                             silence_start_time = None
                         elif speech_started:
@@ -202,5 +212,5 @@ class SpeechToText:
                 log.warning(f"Voice recognition error: {e}")
                 return ""
 
-        text = await loop.run_in_executor(None, _record_command_dynamic)
-        return text
+        async with self._command_lock:
+            return await loop.run_in_executor(None, _record_command_dynamic)

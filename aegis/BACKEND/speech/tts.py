@@ -23,9 +23,25 @@ class TextToSpeech:
                 import pyttsx3
                 self._pyttsx3_engine = pyttsx3.init()
                 self._pyttsx3_engine.setProperty('rate', 190)
+                self._select_male_offline_voice(self._pyttsx3_engine)
             except Exception as e:
                 log.warning(f"Could not initialize pyttsx3 offline TTS engine: {e}")
         return self._pyttsx3_engine
+
+    @staticmethod
+    def _select_male_offline_voice(engine):
+        """Prefer a male Windows voice while remaining compatible with any install."""
+        try:
+            voices = engine.getProperty("voices") or []
+            male_terms = ("david", "mark", "guy", "george", "male", "daniel")
+            for voice in voices:
+                details = " ".join(str(getattr(voice, attr, "")) for attr in ("id", "name", "gender")).lower()
+                if any(term in details for term in male_terms):
+                    engine.setProperty("voice", voice.id)
+                    log.info(f"Offline male voice selected: {getattr(voice, 'name', voice.id)}")
+                    return
+        except Exception as e:
+            log.debug(f"Could not select an offline male voice: {e}")
 
     def _speak_offline(self, text: str):
         """Fallback local offline text to speech using pyttsx3 or SAPI5."""
@@ -62,7 +78,7 @@ class TextToSpeech:
                 except Exception:
                     pass
 
-            log.info(f"Sora speaking: {text}")
+            log.info(f"Jarvis speaking: {text}")
             success = False
 
             # 1. Try High Quality Edge-TTS with accelerated speech rate
@@ -75,7 +91,7 @@ class TextToSpeech:
                 await communicate.save(temp_file.name)
 
                 # Play via Windows MCI
-                alias = f"sora_audio_{abs(hash(text))}_{os.getpid()}"
+                alias = f"jarvis_audio_{abs(hash(text))}_{os.getpid()}"
                 ctypes.windll.winmm.mciSendStringW(f'close {alias}', None, 0, None)
                 
                 open_cmd = f'open "{temp_file.name}" alias {alias}'
@@ -84,11 +100,17 @@ class TextToSpeech:
                 if res == 0:
                     ctypes.windll.winmm.mciSendStringW(f'play {alias}', None, 0, None)
                     
+                    # MCI can return an empty status briefly during startup.
+                    # Wait for a real state so audio is not cut off early.
                     status_buf = ctypes.create_unicode_buffer(256)
-                    while True:
+                    for _ in range(25):
                         ctypes.windll.winmm.mciSendStringW(f'status {alias} mode', status_buf, 256, None)
-                        if status_buf.value != "playing":
+                        if status_buf.value:
                             break
+                        await asyncio.sleep(0.04)
+                    while status_buf.value == "playing":
+                        status_buf.value = ""
+                        ctypes.windll.winmm.mciSendStringW(f'status {alias} mode', status_buf, 256, None)
                         await asyncio.sleep(0.04)
                         
                     ctypes.windll.winmm.mciSendStringW(f'close {alias}', None, 0, None)

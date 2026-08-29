@@ -21,7 +21,7 @@ async def main_controller(window: MainWindow):
     Main controller orchestrating UI, Speech, and Intelligence.
     Handles both spoken voice commands and typed text commands.
     """
-    log.info("Sora controller started.")
+    log.info("Jarvis controller started.")
     
     # Initialize Core Modules
     stt = SpeechToText()
@@ -39,6 +39,7 @@ async def main_controller(window: MainWindow):
     
     # Command Queue for handling typed or spoken inputs
     command_queue = asyncio.Queue()
+    voice_trigger_lock = asyncio.Lock()
 
     def handle_user_command_submission(command_text: str):
         log.info(f"Received user input: {command_text}")
@@ -48,25 +49,27 @@ async def main_controller(window: MainWindow):
 
     # Initial greeting
     window.set_system_status("Online", VisualizerMode.IDLE)
-    welcome_msg = "Sora 2.0 system online and operational. How may I assist you?"
-    window.append_message("Sora", welcome_msg)
+    welcome_msg = "jarvis voice online- how may i assist you"
+    window.append_message("Jarvis", welcome_msg)
     
     # Non-blocking voice greeting
     asyncio.create_task(tts.speak(welcome_msg))
 
     async def trigger_listening():
         """Triggered either by wake word or '+' button."""
-        if not stt.has_microphone:
-            window.append_message("Sora", "Microphone not detected. Please type your prompt.")
+        if voice_trigger_lock.locked():
             return
-        
-        window.set_system_status("Listening...", VisualizerMode.LISTENING)
-        cmd = await stt.listen_for_command()
-        if cmd:
-            log.info(f"Spoken command recognized: {cmd}")
-            await command_queue.put(cmd)
-        else:
-            window.set_system_status("Online", VisualizerMode.IDLE)
+        async with voice_trigger_lock:
+            if not stt.has_microphone:
+                window.append_message("Jarvis", "Microphone not detected. Please type your prompt.")
+                return
+            window.set_system_status("Listening...", VisualizerMode.LISTENING)
+            cmd = await stt.listen_for_command()
+            if cmd:
+                log.info(f"Spoken command recognized: {cmd}")
+                await command_queue.put(cmd)
+            else:
+                window.set_system_status("Online", VisualizerMode.IDLE)
 
     def on_manual_voice_trigger():
         asyncio.create_task(trigger_listening())
@@ -126,7 +129,7 @@ async def main_controller(window: MainWindow):
             first_sentence = True
             async for sentence in llm.generate_response_stream(command):
                 if sentence:
-                    window.append_message("Sora", sentence)
+                    window.append_message("Jarvis", sentence)
                     await tts_queue.put(sentence)
                     first_sentence = False
             
@@ -137,10 +140,10 @@ async def main_controller(window: MainWindow):
             await asyncio.sleep(0.5)
 
 def main():
-    log.info("Starting Sora AI Assistant...")
+    log.info("Starting Jarvis Assistant...")
     try:
         app = QApplication(sys.argv)
-        app.setApplicationName("Sora AI")
+        app.setApplicationName(config.app_name)
         app.setQuitOnLastWindowClosed(True)
         
         # Initialize qasync event loop
@@ -156,7 +159,7 @@ def main():
         # Create and display main window
         window = MainWindow()
         window.show()
-        log.info("Sora UI successfully initialized.")
+        log.info("Jarvis UI successfully initialized.")
         
         # Schedule main asynchronous controller
         loop.create_task(main_controller(window))

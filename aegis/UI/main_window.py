@@ -51,7 +51,7 @@ class MainWindow(QMainWindow):
         header_layout = QHBoxLayout()
         header_layout.setContentsMargins(4, 0, 4, 0)
         
-        self.lbl_title = QLabel("SORA")
+        self.lbl_title = QLabel("JARVIS")
         self.lbl_title.setObjectName("HeaderBrand")
         header_layout.addWidget(self.lbl_title)
         
@@ -60,7 +60,7 @@ class MainWindow(QMainWindow):
         self.lbl_status.setProperty("mode", VisualizerMode.IDLE)
         header_layout.addWidget(self.lbl_status)
         
-        self.lbl_hint = QLabel("Ready • Say 'Hey Sora' or type below")
+        self.lbl_hint = QLabel("Ready • Say 'Hey Jarvis' or type below")
         self.lbl_hint.setObjectName("ActionHint")
         self.lbl_hint.setStyleSheet("margin-left: 8px;")
         header_layout.addWidget(self.lbl_hint)
@@ -147,10 +147,10 @@ class MainWindow(QMainWindow):
     def set_system_status(self, text: str, mode: str = VisualizerMode.IDLE):
         """Update the status label badge, visualizer mode, action hint, and container cues."""
         status_map = {
-            VisualizerMode.IDLE: ("● STANDBY", "Ready • Say 'Hey Sora' or write below"),
+            VisualizerMode.IDLE: ("● STANDBY", "Ready • Say 'Hey Jarvis' or write below"),
             VisualizerMode.LISTENING: ("🎙 LISTENING...", "Listening to your voice... Speak now"),
-            VisualizerMode.THINKING: ("✦ THINKING...", "Sora is processing your request..."),
-            VisualizerMode.SPEAKING: ("🔊 SPEAKING...", "Sora is speaking..."),
+            VisualizerMode.THINKING: ("✦ THINKING...", "Jarvis is processing your request..."),
+            VisualizerMode.SPEAKING: ("🔊 SPEAKING...", "Jarvis is speaking..."),
         }
         
         label_text, hint_text = status_map.get(mode, (text.upper(), ""))
@@ -184,7 +184,7 @@ class MainWindow(QMainWindow):
         if sender.lower() in ["sora", "aegis", "jarvis"]:
             formatted = (
                 f"<div style='margin-bottom: 10px;'>"
-                f"<span style='color: #c084fc; font-weight: 700;'>[ Sora ]</span> "
+                f"<span style='color: #ff1744; font-weight: 700;'>[ JARVIS ]</span> "
                 f"<span style='color: #64748b; font-size: 11px;'>{timestamp}</span><br>"
                 f"<span style='color: #f8fafc; font-size: 13px; line-height: 1.5;'>{text}</span>"
                 f"</div>"
@@ -192,7 +192,7 @@ class MainWindow(QMainWindow):
         else:
             formatted = (
                 f"<div style='margin-bottom: 10px; text-align: right;'>"
-                f"<span style='color: #38bdf8; font-weight: 700;'>[ You ]</span> "
+                f"<span style='color: #ffea00; font-weight: 700;'>[ You ]</span> "
                 f"<span style='color: #64748b; font-size: 11px;'>{timestamp}</span><br>"
                 f"<span style='color: #e2e8f0; font-size: 13px; line-height: 1.5;'>{text}</span>"
                 f"</div>"

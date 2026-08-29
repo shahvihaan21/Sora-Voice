@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Sora AI (v2.0) - Root Launcher
+Jarvis (v2.0) - Root Launcher
 """
 import sys
 from pathlib import Path

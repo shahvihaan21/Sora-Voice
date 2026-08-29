@@ -1,6 +1,6 @@
-# ⚡ Sora AI (v2.0) - Next-Gen AI Desktop Assistant
+# ⚡ Jarvis (v2.0) - Next-Gen AI Desktop Assistant
 
-A sleek, ultra-responsive desktop assistant named **Sora**, powered locally by **Ollama (`llama3.2:3b`)**, featuring a modern Siri/Apple Intelligence fluid harmonic waveform, floating pill input interface, low-latency dynamic VAD voice processing, and neural speech synthesis.
+A sleek, ultra-responsive desktop assistant named **Jarvis**, powered locally by **Ollama (`llama3.2:3b`)**, featuring a modern fluid harmonic waveform, floating pill input interface, low-latency dynamic VAD voice processing, and neural speech synthesis.
 
 ---
 
@@ -38,7 +38,7 @@ Activate your Python environment and install dependencies:
 pip install -r requirements.txt
 ```
 
-### 4. Launch Sora
+### 4. Launch Jarvis
 ```bash
 python run.py
 ```
