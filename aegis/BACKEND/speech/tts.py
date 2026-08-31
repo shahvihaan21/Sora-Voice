@@ -6,11 +6,15 @@ import threading
 from typing import Callable, Optional
 from BACKEND.logger import log
 from BACKEND.config import config
+from BACKEND.speech.voice_pack import get_voice_pack
 
 class TextToSpeech:
     def __init__(self, voice: Optional[str] = None):
-        self.voice = voice or config.tts_voice
-        self.rate = getattr(config, "tts_rate", "+15%")
+        self.voice_pack = get_voice_pack()
+        self.voice = voice or config.tts_voice or self.voice_pack.voice
+        self.rate = getattr(config, "tts_rate", "") or self.voice_pack.rate
+        self.pitch = getattr(config, "tts_pitch", "") or self.voice_pack.pitch
+        self.volume = getattr(config, "tts_volume", "") or self.voice_pack.volume
         self.is_speaking = False
         self._lock = asyncio.Lock()
         self.on_start_callback: Optional[Callable[[], None]] = None
@@ -40,7 +44,7 @@ class TextToSpeech:
             try:
                 import pyttsx3
                 self._pyttsx3_engine = pyttsx3.init()
-                self._pyttsx3_engine.setProperty('rate', 190)
+                self._pyttsx3_engine.setProperty('rate', self.voice_pack.offline_rate)
                 self._select_male_offline_voice(self._pyttsx3_engine)
             except Exception as e:
                 log.warning(f"Could not initialize pyttsx3 offline TTS engine: {e}")
@@ -105,7 +109,10 @@ class TextToSpeech:
                 temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3")
                 temp_file.close()
 
-                communicate = edge_tts.Communicate(text, self.voice, rate=self.rate)
+                communicate = edge_tts.Communicate(
+                    text, voice=self.voice, rate=self.rate,
+                    volume=self.volume, pitch=self.pitch,
+                )
                 await communicate.save(temp_file.name)
 
                 # Play via Windows MCI

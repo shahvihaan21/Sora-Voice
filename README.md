@@ -13,7 +13,7 @@ A sleek, ultra-responsive voice-only desktop assistant named **Jarvis**, powered
 - **Ultra-Fast Zero-Lag Speech Pipeline**:
   - **Dynamic Voice Activity Detection (VAD)**: Detects speech termination in real-time (0.6s silence) instead of waiting on fixed duration timers.
   - **Clause & Sentence Streaming**: Yields early tokens to Text-to-Speech immediately for near-zero latency.
-  - **Accelerated Neural Speech**: Enhanced speech rate (+15%) with Edge-TTS and instant Win32 SAPI5 / pyttsx3 offline fallback.
+  - **Cinematic British Voice Pack**: British `en-GB-RyanNeural` voice, deliberate delivery, and lower pitch with Edge-TTS plus an offline fallback. It is an original neural-voice configuration, not a clone of the film performance.
 - **One-Click Windows Launcher**: Automatic environment activation with `run.bat`.
 
 ---
@@ -37,6 +37,8 @@ Activate your Python environment and install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
+
+To enable the voice pack, copy `.env.example` to `.env` and keep `TTS_PROFILE=cinematic_assistant`. `jarvis_classic` remains as a backward-compatible alias. Use `TTS_PROFILE=neutral` or set `TTS_VOICE`, `TTS_RATE`, `TTS_PITCH`, and `TTS_VOLUME` to customize it.
 
 ### 4. Launch Jarvis
 ```bash

@@ -35,8 +35,10 @@ class AppConfig(BaseModel):
             if w.strip()
         ]
     )
-    tts_voice: str = Field(default_factory=lambda: os.getenv("TTS_VOICE", "en-US-GuyNeural").strip())
-    tts_rate: str = Field(default_factory=lambda: os.getenv("TTS_RATE", "+15%").strip())
+    tts_voice: str = Field(default_factory=lambda: os.getenv("TTS_VOICE", "").strip())
+    tts_rate: str = Field(default_factory=lambda: os.getenv("TTS_RATE", "").strip())
+    tts_pitch: str = Field(default_factory=lambda: os.getenv("TTS_PITCH", "").strip())
+    tts_volume: str = Field(default_factory=lambda: os.getenv("TTS_VOLUME", "").strip())
     sample_rate: int = 16000
     
     # Paths
