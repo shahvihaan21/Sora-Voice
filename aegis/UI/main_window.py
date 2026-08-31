@@ -2,7 +2,7 @@ import asyncio
 import datetime
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QLabel, QPushButton, 
-    QHBoxLayout, QTextEdit, QLineEdit, QFrame
+    QHBoxLayout, QTextEdit, QFrame
 )
 from PyQt6.QtCore import Qt, QPoint, pyqtSignal, QObject
 from PyQt6.QtGui import QTextCursor
@@ -13,7 +13,6 @@ from UI.widgets.visualizer import AudioVisualizer, VisualizerMode
 from BACKEND.config import config
 
 class MainWindow(QMainWindow):
-    user_command_submitted = pyqtSignal(str)
     voice_trigger_requested = pyqtSignal()
 
     def __init__(self):
@@ -112,29 +111,16 @@ class MainWindow(QMainWindow):
         pill_layout.setContentsMargins(8, 6, 8, 6)
         pill_layout.setSpacing(10)
         
-        # Left '+' Action Button
-        self.btn_plus = QPushButton("+")
-        self.btn_plus.setObjectName("BtnPlus")
-        self.btn_plus.setFixedSize(40, 40)
-        self.btn_plus.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.btn_plus.setToolTip("Click to trigger voice listening mode")
-        self.btn_plus.clicked.connect(self.on_plus_clicked)
-        pill_layout.addWidget(self.btn_plus)
-        
-        # Center Text Input with Context Placeholder
-        self.input_cmd = QLineEdit()
-        self.input_cmd.setObjectName("PillInput")
-        self.input_cmd.setPlaceholderText("Write your prompt here..")
-        self.input_cmd.returnPressed.connect(self.on_send_command)
-        pill_layout.addWidget(self.input_cmd, stretch=1)
-        
-        # Right Circular Gradient '↑' Send Button
-        self.btn_send = QPushButton("↑")
-        self.btn_send.setObjectName("BtnSendGradient")
-        self.btn_send.setFixedSize(40, 40)
-        self.btn_send.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.btn_send.clicked.connect(self.on_send_command)
-        pill_layout.addWidget(self.btn_send)
+        # Voice-only control. Nothing is captured until this button is pressed.
+        pill_layout.addStretch()
+        self.btn_mic = QPushButton("MIC")
+        self.btn_mic.setObjectName("BtnMic")
+        self.btn_mic.setFixedSize(70, 40)
+        self.btn_mic.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_mic.setToolTip("Start microphone (press again to stop)")
+        self.btn_mic.clicked.connect(self.on_mic_clicked)
+        pill_layout.addWidget(self.btn_mic)
+        pill_layout.addStretch()
         
         layout.addWidget(self.pill_container)
 
@@ -161,18 +147,11 @@ class MainWindow(QMainWindow):
         self.pill_container.setProperty("mode", mode)
         
         is_listening = (mode == VisualizerMode.LISTENING)
-        self.btn_plus.setProperty("active", "true" if is_listening else "false")
-        self.btn_plus.setText("🎙" if is_listening else "+")
-        
-        if is_listening:
-            self.input_cmd.setPlaceholderText("Listening to your voice...")
-        elif mode == VisualizerMode.THINKING:
-            self.input_cmd.setPlaceholderText("Formulating response...")
-        else:
-            self.input_cmd.setPlaceholderText("Write your prompt here..")
+        self.btn_mic.setProperty("active", "true" if is_listening else "false")
+        self.btn_mic.setText("STOP" if is_listening else "MIC")
             
         # Re-apply stylesheet state
-        for widget in [self.lbl_status, self.pill_container, self.btn_plus]:
+        for widget in [self.lbl_status, self.pill_container, self.btn_mic]:
             widget.style().unpolish(widget)
             widget.style().polish(widget)
             
@@ -200,15 +179,9 @@ class MainWindow(QMainWindow):
         self.chat_display.append(formatted)
         self.chat_display.moveCursor(QTextCursor.MoveOperation.End)
 
-    def on_plus_clicked(self):
-        """Handle '+' button click to toggle instant voice listening."""
+    def on_mic_clicked(self):
+        """Toggle microphone capture and cancel active work on second press."""
         self.voice_trigger_requested.emit()
-
-    def on_send_command(self):
-        text = self.input_cmd.text().strip()
-        if text:
-            self.input_cmd.clear()
-            self.user_command_submitted.emit(text)
 
     # --- Frameless Window Dragging ---
     def mousePressEvent(self, event):

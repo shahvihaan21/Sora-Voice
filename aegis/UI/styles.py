@@ -142,50 +142,36 @@ QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
     background-color: rgba(50, 8, 18, 0.98);
 }
 
-/* Left '+' Plus Action Button */
-QPushButton#BtnPlus {
+/* Center microphone control */
+QPushButton#BtnMic {
     background-color: transparent;
     border: none;
     color: #ff8a9f;
-    font-size: 22px;
+    font-size: 13px;
     font-weight: 300;
     border-radius: 18px;
     padding-bottom: 2px;
 }
 
-QPushButton#BtnPlus[active="true"] {
+QPushButton#BtnMic[active="true"] {
     background-color: rgba(255, 234, 0, 0.25);
     color: #ffea00;
     border: 1px solid rgba(255, 234, 0, 0.7);
     font-size: 16px;
 }
 
-QPushButton#BtnPlus:hover {
+QPushButton#BtnMic:hover {
     color: #ffffff;
     background-color: rgba(255, 255, 255, 0.08);
 }
 
-QPushButton#BtnPlus:pressed {
+QPushButton#BtnMic:pressed {
     color: #ff1744;
     background-color: rgba(255, 23, 68, 0.18);
 }
 
-/* Center Text Input */
-QLineEdit#PillInput {
-    background-color: transparent;
-    border: none;
-    color: #ffffff;
-    font-size: 14px;
-    padding: 0px 6px;
-}
-
-QLineEdit#PillInput::placeholder {
-    color: #64748b;
-    font-weight: 400;
-}
-
-/* Right Circular Gradient '↑' Send Button */
-QPushButton#BtnSendGradient {
+/* Microphone control */
+QPushButton#BtnMic {
     background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #ff1744, stop:0.5 #ff5252, stop:1 #ffea00);
     border: none;
     border-radius: 20px;
@@ -194,11 +180,11 @@ QPushButton#BtnSendGradient {
     font-weight: bold;
 }
 
-QPushButton#BtnSendGradient:hover {
+QPushButton#BtnMic:hover {
     background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #ff4569, stop:0.5 #ff1744, stop:1 #fff000);
 }
 
-QPushButton#BtnSendGradient:pressed {
+QPushButton#BtnMic:pressed {
     background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #d50032, stop:1 #ffea00);
 }
 """

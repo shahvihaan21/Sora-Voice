@@ -25,7 +25,7 @@ class AppConfig(BaseModel):
     
     # Local AI (Ollama)
     ollama_host: str = Field(default_factory=lambda: os.getenv("OLLAMA_HOST", "http://localhost:11434").strip())
-    ollama_model: str = Field(default_factory=lambda: os.getenv("OLLAMA_MODEL", "llama3.2:3b").strip())
+    ollama_model: str = Field(default_factory=lambda: os.getenv("OLLAMA_MODEL", "jarvis-ft:latest").strip())
     
     # Speech & Voice
     wake_words: List[str] = Field(

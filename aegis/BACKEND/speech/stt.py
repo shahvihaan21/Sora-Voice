@@ -1,6 +1,7 @@
 import asyncio
 import tempfile
 import os
+import threading
 from typing import List, Optional, Callable
 import numpy as np
 from BACKEND.logger import log
@@ -15,6 +16,7 @@ class SpeechToText:
         # Prevent the wake-word loop and the manual trigger from recording at
         # the same time. Concurrent microphone streams are unreliable on Windows.
         self._command_lock = asyncio.Lock()
+        self._stop_event = threading.Event()
         
         self.on_listening_callback: Optional[Callable[[], None]] = None
         self.on_processing_callback: Optional[Callable[[], None]] = None
@@ -46,6 +48,10 @@ class SpeechToText:
             self._recognizer.pause_threshold = 0.8
             self._recognizer.non_speaking_duration = 0.35
         return self._recognizer
+
+    def stop(self):
+        """Request immediate release of an active recording stream."""
+        self._stop_event.set()
 
     async def listen_for_wake_word(self) -> bool:
         """
@@ -162,7 +168,7 @@ class SpeechToText:
 
             try:
                 with sd.InputStream(samplerate=self.sample_rate, channels=1, dtype='float32') as stream:
-                    while time.time() - start_time < max_recording_time:
+                    while time.time() - start_time < max_recording_time and not self._stop_event.is_set():
                         chunk, _ = stream.read(chunk_samples)
                         audio_chunks.append(chunk)
                         max_val = float(np.max(np.abs(chunk)))
@@ -213,4 +219,5 @@ class SpeechToText:
                 return ""
 
         async with self._command_lock:
+            self._stop_event.clear()
             return await loop.run_in_executor(None, _record_command_dynamic)

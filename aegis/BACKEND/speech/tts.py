@@ -16,6 +16,24 @@ class TextToSpeech:
         self.on_start_callback: Optional[Callable[[], None]] = None
         self.on_end_callback: Optional[Callable[[], None]] = None
         self._pyttsx3_engine = None
+        self._active_alias = None
+
+    async def stop(self):
+        """Stop Windows playback immediately when the user disables the mic."""
+        alias = self._active_alias
+        if alias and hasattr(ctypes, "windll"):
+            try:
+                ctypes.windll.winmm.mciSendStringW(f"stop {alias}", None, 0, None)
+                ctypes.windll.winmm.mciSendStringW(f"close {alias}", None, 0, None)
+            except Exception as e:
+                log.debug(f"Could not stop active speech: {e}")
+        self._active_alias = None
+        self.is_speaking = False
+        if self._pyttsx3_engine:
+            try:
+                self._pyttsx3_engine.stop()
+            except Exception:
+                pass
 
     def _get_offline_engine(self):
         if self._pyttsx3_engine is None:
@@ -92,6 +110,7 @@ class TextToSpeech:
 
                 # Play via Windows MCI
                 alias = f"jarvis_audio_{abs(hash(text))}_{os.getpid()}"
+                self._active_alias = alias
                 ctypes.windll.winmm.mciSendStringW(f'close {alias}', None, 0, None)
                 
                 open_cmd = f'open "{temp_file.name}" alias {alias}'
@@ -114,6 +133,7 @@ class TextToSpeech:
                         await asyncio.sleep(0.04)
                         
                     ctypes.windll.winmm.mciSendStringW(f'close {alias}', None, 0, None)
+                    self._active_alias = None
                     success = True
 
                 # Clean up temporary mp3

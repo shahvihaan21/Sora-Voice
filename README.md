@@ -1,12 +1,12 @@
 # ⚡ Jarvis (v2.0) - Next-Gen AI Desktop Assistant
 
-A sleek, ultra-responsive desktop assistant named **Jarvis**, powered locally by **Ollama (`llama3.2:3b`)**, featuring a modern fluid harmonic waveform, floating pill input interface, low-latency dynamic VAD voice processing, and neural speech synthesis.
+A sleek, ultra-responsive voice-only desktop assistant named **Jarvis**, powered locally by **Ollama (`jarvis-ft:latest`)**, featuring a modern fluid harmonic waveform, microphone start/stop control, low-latency dynamic VAD voice processing, and neural speech synthesis.
 
 ---
 
 ## 🌟 Key Features
 
-- **100% Local AI Intelligence**: Powered by Ollama with `llama3.2:3b` — private, blazing fast, and offline-capable with instant fallbacks.
+- **100% Local AI Intelligence**: Powered by Ollama with `jarvis-ft:latest` — private, blazing fast, and offline-capable with instant fallbacks.
 - **Sleek Context-Accurate UI**: Replicating the modern Apple Intelligence / Siri dark HUD aesthetic with floating rounded window, custom minimalist controls, and glassmorphism.
 - **Fluid Multi-Layer Harmonic Waveform**: Translucent gradient sine ribbons (cyan, blue, purple, magenta) that dynamically pulse and react to speech and thinking states.
 - **Floating Pill Input Bar**: Complete with `+` voice trigger action button, clean prompt input, and glowing purple-to-blue gradient `↑` send button.
@@ -21,9 +21,9 @@ A sleek, ultra-responsive desktop assistant named **Jarvis**, powered locally by
 ## 🚀 Quick Start
 
 ### 1. Start Ollama
-Ensure you have [Ollama](https://ollama.com) installed and pull the `llama3.2:3b` model:
+Ensure you have [Ollama](https://ollama.com) installed and pull the `jarvis-ft:latest` model:
 ```bash
-ollama run llama3.2:3b
+ollama run jarvis-ft:latest
 ```
 
 ### 2. Simple One-Click Run (Windows)
@@ -56,13 +56,13 @@ python test_system.py
 ## 📁 Project Architecture
 
 ```
-Sora AI/
+Jarvis/
 ├── aegis/
 │   ├── BACKEND/
 │   │   ├── config.py             # App configuration, wake words & voice settings
 │   │   ├── logger.py             # Loguru logger with UTF-8 file & console logging
 │   │   ├── intelligence/
-│   │   │   └── llm.py            # Sora Ollama engine (llama3.2:3b) + Fast Fallback
+│   │   │   └── llm.py            # Jarvis Ollama engine (jarvis-ft:latest) + Fast Fallback
 │   │   └── speech/
 │   │       ├── stt.py            # Dynamic VAD speech recognition & wake word detection
 │   │       └── tts.py            # Accelerated Edge-TTS + Offline SAPI5 TTS

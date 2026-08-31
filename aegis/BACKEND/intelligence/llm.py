@@ -9,7 +9,7 @@ from BACKEND.config import config
 class IntelligenceEngine:
     def __init__(self):
         self.host = config.ollama_host.rstrip('/')
-        self.model_id = config.ollama_model or "llama3.2:3b"
+        self.model_id = config.ollama_model or "jarvis-ft:latest"
         self.conversation_history: List[Dict[str, str]] = []
         
         self.system_instruction = (
@@ -67,7 +67,7 @@ class IntelligenceEngine:
                 
         return (
             f"I heard: '{user_input}'. "
-            "Ollama server is currently offline. Start Ollama ('ollama run llama3.2:3b') for full neural responses."
+            f"Ollama server is currently offline. Start Ollama ('ollama run {self.model_id}') for full neural responses."
         )
 
     async def generate_response(self, user_input: str) -> str:

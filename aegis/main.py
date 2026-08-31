@@ -19,7 +19,7 @@ from BACKEND.intelligence.llm import IntelligenceEngine
 async def main_controller(window: MainWindow):
     """
     Main controller orchestrating UI, Speech, and Intelligence.
-    Handles both spoken voice commands and typed text commands.
+    Handles voice-only commands and microphone lifecycle.
     """
     log.info("Jarvis controller started.")
     
@@ -37,15 +37,12 @@ async def main_controller(window: MainWindow):
     tts.on_start_callback = _on_tts_start
     tts.on_end_callback = _on_tts_end
     
-    # Command Queue for handling typed or spoken inputs
+    # Voice command queue and lifecycle state.
     command_queue = asyncio.Queue()
     voice_trigger_lock = asyncio.Lock()
-
-    def handle_user_command_submission(command_text: str):
-        log.info(f"Received user input: {command_text}")
-        command_queue.put_nowait(command_text)
-
-    window.user_command_submitted.connect(handle_user_command_submission)
+    mic_enabled = False
+    listener_task = None
+    active_response_task = None
 
     # Initial greeting
     window.set_system_status("Online", VisualizerMode.IDLE)
@@ -56,12 +53,15 @@ async def main_controller(window: MainWindow):
     asyncio.create_task(tts.speak(welcome_msg))
 
     async def trigger_listening():
-        """Triggered either by wake word or '+' button."""
+        """Capture one command while the microphone toggle is enabled."""
         if voice_trigger_lock.locked():
             return
         async with voice_trigger_lock:
+            if not mic_enabled:
+                return
             if not stt.has_microphone:
-                window.append_message("Jarvis", "Microphone not detected. Please type your prompt.")
+                window.append_message("Jarvis", "Microphone not detected. Check your input device.")
+                window.set_system_status("Offline", VisualizerMode.IDLE)
                 return
             window.set_system_status("Listening...", VisualizerMode.LISTENING)
             cmd = await stt.listen_for_command()
@@ -71,43 +71,47 @@ async def main_controller(window: MainWindow):
             else:
                 window.set_system_status("Online", VisualizerMode.IDLE)
 
-    def on_manual_voice_trigger():
-        asyncio.create_task(trigger_listening())
-
-    window.voice_trigger_requested.connect(on_manual_voice_trigger)
-
     async def voice_listener_task():
-        """Listens continuously for wake words if microphone is available."""
-        if not stt.has_microphone:
-            log.warning("No microphone detected. Voice trigger loop is disabled.")
-            return
-
-        while True:
+        """Keep the mic active after the first press and accept wake words."""
+        while mic_enabled:
             try:
-                # Wait for wake word
                 detected = await stt.listen_for_wake_word()
-                if detected:
+                if detected and mic_enabled:
                     await trigger_listening()
+            except asyncio.CancelledError:
+                raise
             except Exception as e:
                 log.error(f"Error in voice listener loop: {e}")
-                await asyncio.sleep(1.5)
+                await asyncio.sleep(1.0)
 
-    # Launch background voice listener
-    asyncio.create_task(voice_listener_task())
+    async def stop_all_operations():
+        nonlocal mic_enabled, listener_task, active_response_task
+        mic_enabled = False
+        if listener_task and not listener_task.done():
+            listener_task.cancel()
+        stt.stop()
+        if active_response_task and not active_response_task.done():
+            active_response_task.cancel()
+        while not command_queue.empty():
+            try:
+                command_queue.get_nowait()
+                command_queue.task_done()
+            except asyncio.QueueEmpty:
+                break
+        await tts.stop()
+        window.set_system_status("Stopped", VisualizerMode.IDLE)
 
-    # Create a queue for TTS to play sentences sequentially
-    tts_queue = asyncio.Queue()
+    def on_manual_voice_trigger():
+        nonlocal mic_enabled, listener_task
+        if mic_enabled:
+            asyncio.create_task(stop_all_operations())
+            return
+        mic_enabled = True
+        window.set_system_status("Listening...", VisualizerMode.LISTENING)
+        asyncio.create_task(trigger_listening())
+        listener_task = asyncio.create_task(voice_listener_task())
 
-    async def tts_worker():
-        while True:
-            sentence = await tts_queue.get()
-            if sentence is None:
-                tts_queue.task_done()
-                continue
-            await tts.speak(sentence)
-            tts_queue.task_done()
-
-    asyncio.create_task(tts_worker())
+    window.voice_trigger_requested.connect(on_manual_voice_trigger)
 
     # Process Commands from Queue
     while True:
@@ -125,15 +129,26 @@ async def main_controller(window: MainWindow):
             # Update status to Thinking
             window.set_system_status("Thinking...", VisualizerMode.THINKING)
             
-            # Generate AI response
-            first_sentence = True
-            async for sentence in llm.generate_response_stream(command):
-                if sentence:
-                    window.append_message("Jarvis", sentence)
-                    await tts_queue.put(sentence)
-                    first_sentence = False
-            
-            command_queue.task_done()
+            # Generate the complete response before displaying/speaking it.
+            # This avoids chopped chat bubbles and overlapping TTS sentences.
+            async def process_response():
+                response_parts = []
+                async for sentence in llm.generate_response_stream(command):
+                    if sentence:
+                        response_parts.append(sentence.strip())
+                response = " ".join(response_parts).strip()
+                if response:
+                    window.append_message("Jarvis", response)
+                    await tts.speak(response)
+
+            active_response_task = asyncio.create_task(process_response())
+            try:
+                await active_response_task
+            except asyncio.CancelledError:
+                log.info("Active Jarvis response cancelled by microphone stop.")
+            finally:
+                active_response_task = None
+                command_queue.task_done()
         except Exception as e:
             log.error(f"Error executing command loop: {e}")
             window.set_system_status("Error", VisualizerMode.IDLE)
