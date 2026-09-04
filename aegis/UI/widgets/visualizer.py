@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QWidget
 from PyQt6.QtGui import (
-    QPainter, QColor, QPen, QBrush, QLinearGradient, 
+    QPainter, QColor, QPen, QBrush, QLinearGradient,
     QRadialGradient, QPainterPath
 )
 from PyQt6.QtCore import Qt, QTimer
@@ -10,6 +10,9 @@ class VisualizerMode:
     IDLE = "IDLE"
     LISTENING = "LISTENING"
     THINKING = "THINKING"
+    EXECUTING = "EXECUTING"
+    CONFIRMATION_REQUIRED = "CONFIRMATION_REQUIRED"
+    ERROR = "ERROR"
     SPEAKING = "SPEAKING"
 
 class AudioVisualizer(QWidget):
@@ -21,11 +24,11 @@ class AudioVisualizer(QWidget):
         super().__init__(parent)
         self.setMinimumSize(400, 160)
         self.setFixedHeight(170)
-        
+
         self.phase = 0.0
         self.mode = VisualizerMode.IDLE
         self.pulse = 0.0
-        
+
         # 60 FPS smooth rendering timer (~16ms)
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_animation)
@@ -40,6 +43,9 @@ class AudioVisualizer(QWidget):
             VisualizerMode.IDLE: 0.025,
             VisualizerMode.LISTENING: 0.065,
             VisualizerMode.THINKING: 0.085,
+            VisualizerMode.EXECUTING: 0.095,
+            VisualizerMode.CONFIRMATION_REQUIRED: 0.04,
+            VisualizerMode.ERROR: 0.02,
             VisualizerMode.SPEAKING: 0.075,
         }
         self.phase += speed_map.get(self.mode, 0.03)
@@ -49,7 +55,7 @@ class AudioVisualizer(QWidget):
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        
+
         width = float(self.width())
         height = float(self.height())
         mid_y = height / 2.0
@@ -58,7 +64,7 @@ class AudioVisualizer(QWidget):
         # 1. Soft Central Ambient Aura
         aura_rad = min(width, height) * 0.55
         aura_gradient = QRadialGradient(center_x, mid_y, aura_rad)
-        
+
         if self.mode == VisualizerMode.LISTENING:
             glow_col = QColor(255, 234, 0, int(35 + 35 * self.pulse))   # Neon yellow glow
         elif self.mode == VisualizerMode.THINKING:
@@ -67,11 +73,11 @@ class AudioVisualizer(QWidget):
             glow_col = QColor(255, 23, 68, int(40 + 45 * self.pulse))  # Electric red glow
         else:
             glow_col = QColor(255, 82, 82, int(20 + 20 * self.pulse))  # Soft red glow
-            
+
         aura_gradient.setColorAt(0.0, glow_col)
         aura_gradient.setColorAt(0.7, QColor(glow_col.red(), glow_col.green(), glow_col.blue(), int(glow_col.alpha() * 0.3)))
         aura_gradient.setColorAt(1.0, QColor(0, 0, 0, 0))
-        
+
         painter.setBrush(QBrush(aura_gradient))
         painter.setPen(Qt.PenStyle.NoPen)
         painter.drawEllipse(int(center_x - aura_rad), int(mid_y - aura_rad * 0.6), int(aura_rad * 2), int(aura_rad * 1.2))
@@ -182,26 +188,26 @@ class AudioVisualizer(QWidget):
         freq2 = cfg["freq2"]
         amp = cfg["amp"]
         phase_offset = self.phase * cfg["phase_mult"]
-        
+
         for x in range(0, int(width) + step, step):
             norm_x = min(1.0, max(0.0, float(x) / max(1.0, width)))
             # Smooth window envelope (taper to 0 at both edges)
             sin_env = max(0.0, math.sin(norm_x * math.pi))
             envelope = sin_env * sin_env
-            
+
             # Harmonic superposition for organic fluid wave
             w1 = math.sin(norm_x * freq1 * math.pi * 2.0 + phase_offset)
             w2 = math.cos(norm_x * freq2 * math.pi * 2.0 - phase_offset * 0.7) * 0.45
             w3 = math.sin(norm_x * 1.5 * math.pi + phase_offset * 0.5) * 0.2
-            
+
             disp = float((w1 + w2 + w3) * amp * envelope)
-            
+
             # Thickness modulation along wave
             thickness = max(2.0, float((math.sin(norm_x * math.pi + self.phase * 0.4) * 8.0 + 10.0) * envelope))
-            
+
             y_top = float(mid_y - disp - (thickness / 2.0))
             y_bot = float(mid_y - disp + (thickness / 2.0))
-            
+
             points_top.append((float(x), float(y_top)))
             points_bot.append((float(x), float(y_bot)))
 
@@ -219,7 +225,7 @@ class AudioVisualizer(QWidget):
         grad = QLinearGradient(0, mid_y - amp, width, mid_y + amp)
         c_start = cfg["col_start"]
         c_end = cfg["col_end"]
-        
+
         fill_start = QColor(c_start.red(), c_start.green(), c_start.blue(), cfg["alpha_fill"])
         fill_end = QColor(c_end.red(), c_end.green(), c_end.blue(), cfg["alpha_fill"])
         grad.setColorAt(0.15, fill_start)

@@ -1,10 +1,10 @@
-# ⚡ Jarvis (v2.0) - Next-Gen AI Desktop Assistant
+# Sora Voice — Local Windows Assistant
 
-A sleek, ultra-responsive voice-only desktop assistant named **Jarvis**, powered locally by **Ollama (`jarvis-ft:latest`)**, featuring a modern fluid harmonic waveform, microphone start/stop control, low-latency dynamic VAD voice processing, and neural speech synthesis.
+Sora is a local-first Windows desktop assistant. It combines the existing PyQt HUD, dynamic-VAD speech input, interruptible Edge-TTS/pyttsx3 speech output, Ollama conversation, and a validated tool layer for safe system actions. Cloud speech fallbacks remain optional legacy compatibility paths; Sora never gives the LLM arbitrary shell access.
 
 ---
 
-## 🌟 Key Features
+## Features
 
 - **100% Local AI Intelligence**: Powered by Ollama with `jarvis-ft:latest` — private, blazing fast, and offline-capable with instant fallbacks.
 - **Sleek Context-Accurate UI**: Replicating the modern Apple Intelligence / Siri dark HUD aesthetic with floating rounded window, custom minimalist controls, and glassmorphism.
@@ -18,12 +18,13 @@ A sleek, ultra-responsive voice-only desktop assistant named **Jarvis**, powered
 
 ---
 
-## 🚀 Quick Start
+## Installation and Quick Start
 
 ### 1. Start Ollama
-Ensure you have [Ollama](https://ollama.com) installed and pull the `jarvis-ft:latest` model:
+Install [Ollama](https://ollama.com), then pull the configured model:
 ```bash
-ollama run jarvis-ft:latest
+ollama pull llama3.2:3b
+ollama run llama3.2:3b
 ```
 
 ### 2. Simple One-Click Run (Windows)
@@ -47,7 +48,7 @@ python run.py
 
 ---
 
-## 🧪 Self-Diagnostic Suite
+## Testing and diagnostics
 Run the built-in automated test suite to verify all subsystems:
 ```bash
 python test_system.py
@@ -55,7 +56,7 @@ python test_system.py
 
 ---
 
-## 📁 Project Architecture
+## Architecture
 
 ```
 Jarvis/

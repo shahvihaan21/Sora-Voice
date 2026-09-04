@@ -1,0 +1,9 @@
+from enum import Enum
+class AssistantState(str, Enum):
+    IDLE = "IDLE"
+    LISTENING = "LISTENING"
+    THINKING = "THINKING"
+    EXECUTING = "EXECUTING"
+    SPEAKING = "SPEAKING"
+    CONFIRMATION_REQUIRED = "CONFIRMATION_REQUIRED"
+    ERROR = "ERROR"

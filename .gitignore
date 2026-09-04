@@ -20,6 +20,9 @@ data/
 # Environment Variables & Sensitive Files
 .env
 
+# Test and IDE caches
+.pytest_cache/
+
 # IDE & OS
 .vscode/
 .idea/

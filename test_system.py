@@ -13,7 +13,7 @@ if str(aegis_dir) not in sys.path:
 
 import asyncio
 
-def test_config():
+def check_config():
     print("[1/6] Testing Configuration & Environment...")
     from aegis.BACKEND.config import config
     assert config.app_name is not None
@@ -25,17 +25,17 @@ def test_config():
     print(f"  -> Ollama Model: {config.ollama_model}")
     print(f"  -> Wake words: {config.wake_words}")
 
-def test_logger():
+def check_logger():
     print("[2/6] Testing Logger...")
     from aegis.BACKEND.logger import log
     log.info("Sora self-test logger message.")
     print("  -> Logger initialized and writing successfully.")
 
-async def test_intelligence():
+async def check_intelligence():
     print("[3/6] Testing Intelligence Engine (Ollama & Offline Fallback)...")
     from aegis.BACKEND.intelligence import llm
     engine = llm.IntelligenceEngine()
-    
+
     # Check Ollama server availability
     is_live = await engine.is_ollama_available()
     print(f"  -> Ollama Local Server Online: {is_live}")
@@ -44,19 +44,19 @@ async def test_intelligence():
     res_time = await engine.generate_response("what time is it?")
     assert len(res_time) > 0
     print(f"  -> Response (Time query): '{res_time}'")
-    
+
     res_calc = await engine.generate_response("calculate 50 * 2")
     assert len(res_calc) > 0
     print(f"  -> Response (Math query): '{res_calc}'")
 
-def test_stt():
+def check_stt():
     print("[4/6] Testing Speech-to-Text Module...")
     from aegis.BACKEND.speech.stt import SpeechToText
     stt = SpeechToText()
     print(f"  -> Mic Hardware Detected: {stt.has_microphone}")
     print(f"  -> Recognizer Ready: {stt.recognizer is not None}")
 
-def test_tts():
+def check_tts():
     print("[5/6] Testing Text-to-Speech Engine...")
     from aegis.BACKEND.speech.tts import TextToSpeech
     tts = TextToSpeech()
@@ -64,12 +64,12 @@ def test_tts():
     print(f"  -> Speech Rate: {tts.rate}")
     print(f"  -> Offline fallback engine available: {tts._get_offline_engine() is not None}")
 
-def test_ui():
+def check_ui():
     print("[6/6] Testing UI Components & Styles...")
     from PyQt6.QtWidgets import QApplication
     from aegis.UI.main_window import MainWindow
     from aegis.UI.widgets.visualizer import VisualizerMode
-    
+
     app = QApplication.instance() or QApplication(sys.argv)
     window = MainWindow()
     assert window is not None
@@ -82,12 +82,12 @@ async def run_all():
     print("      SORA AI (v2.0) SYSTEM DIAGNOSTIC SUITE      ")
     print("==================================================")
     try:
-        test_config()
-        test_logger()
-        await test_intelligence()
-        test_stt()
-        test_tts()
-        test_ui()
+        check_config()
+        check_logger()
+        await check_intelligence()
+        check_stt()
+        check_tts()
+        check_ui()
         print("==================================================")
         print(" [SUCCESS] ALL 6 SUBSYSTEM TESTS PASSED!         ")
         print("==================================================")

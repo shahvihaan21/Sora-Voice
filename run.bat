@@ -1,10 +1,10 @@
 @echo off
 setlocal enabledelayedexpansion
 
-title Jarvis Assistant (v2.0) Launcher
+title Sora Voice Assistant Launcher
 
 echo ===================================================
-echo               Jarvis Assistant (v2.0)             
+echo               Sora Voice Assistant
 echo ===================================================
 echo.
 
@@ -44,7 +44,7 @@ if %errorlevel% neq 0 (
     )
 )
 
-echo [INFO] Launching Jarvis Interface...
+echo [INFO] Launching Sora Voice Interface...
 python run.py
 
 if %errorlevel% neq 0 (
