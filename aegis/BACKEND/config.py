@@ -17,21 +17,22 @@ class AppConfig(BaseModel):
     app_name: str = "Jarvis"
     version: str = "2.0.0"
     debug: bool = True
-    
+
     # UI Customization
     theme: str = "dark"
     accent_color: str = "#ff1744"  # Neon red accent
     secondary_color: str = "#ffea00" # Neon yellow highlight
-    
+
     # Local AI (Ollama)
-    ollama_host: str = Field(default_factory=lambda: os.getenv("OLLAMA_HOST", "http://localhost:11434").strip())
-    ollama_model: str = Field(default_factory=lambda: os.getenv("OLLAMA_MODEL", "jarvis-ft:latest").strip())
-    
+    ollama_host: str = Field(default_factory=lambda: os.getenv("OLLAMA_HOST", "http://localhost:11434").strip().rstrip("/"))
+    ollama_model: str = Field(default_factory=lambda: os.getenv("OLLAMA_MODEL", "llama3.2:3b").strip())
+    ollama_timeout: float = Field(default_factory=lambda: float(os.getenv("OLLAMA_TIMEOUT", "30").strip()))
+
     # Speech & Voice
     wake_words: List[str] = Field(
         default_factory=lambda: [
-            w.strip().lower() 
-            for w in os.getenv("WAKE_WORDS", "jarvis,hey jarvis").split(",") 
+            w.strip().lower()
+            for w in os.getenv("WAKE_WORDS", "jarvis,hey jarvis").split(",")
             if w.strip()
         ]
     )
@@ -39,13 +40,16 @@ class AppConfig(BaseModel):
     tts_rate: str = Field(default_factory=lambda: os.getenv("TTS_RATE", "").strip())
     tts_pitch: str = Field(default_factory=lambda: os.getenv("TTS_PITCH", "").strip())
     tts_volume: str = Field(default_factory=lambda: os.getenv("TTS_VOLUME", "").strip())
-    sample_rate: int = 16000
-    
+    sample_rate: int = Field(default_factory=lambda: int(os.getenv("SAMPLE_RATE", "16000").strip()))
+    vad_energy_threshold: float = Field(default_factory=lambda: float(os.getenv("VAD_ENERGY_THRESHOLD", "0.010").strip()))
+    vad_silence_timeout: float = Field(default_factory=lambda: float(os.getenv("VAD_SILENCE_TIMEOUT", "0.7").strip()))
+    max_command_seconds: float = Field(default_factory=lambda: float(os.getenv("MAX_COMMAND_SECONDS", "8").strip()))
+
     # Paths
     base_dir: Path = BASE_DIR
     logs_dir: Path = BASE_DIR / "logs"
     data_dir: Path = BASE_DIR / "data"
-    
+
     def ensure_dirs(self):
         self.logs_dir.mkdir(parents=True, exist_ok=True)
         self.data_dir.mkdir(parents=True, exist_ok=True)

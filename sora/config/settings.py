@@ -20,7 +20,7 @@ else:
 
 
 def _env(key: str, default: str = "") -> str:
-    return os.getenv(key, default).strip()
+    return os.getenv(key, default).strip().strip('"').strip("'")
 
 
 def _app_aliases() -> Dict[str, str]:

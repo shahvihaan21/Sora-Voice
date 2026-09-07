@@ -17,10 +17,10 @@ class SpeechToText:
         # the same time. Concurrent microphone streams are unreliable on Windows.
         self._command_lock = asyncio.Lock()
         self._stop_event = threading.Event()
-        
+
         self.on_listening_callback: Optional[Callable[[], None]] = None
         self.on_processing_callback: Optional[Callable[[], None]] = None
-        
+
         self._check_audio_hardware()
 
     def _check_audio_hardware(self):
@@ -128,7 +128,7 @@ class SpeechToText:
                     return True
             except Exception as e:
                 log.debug(f"Wake loop error: {e}")
-                
+
             await asyncio.sleep(0.04)
 
     async def listen_for_command(self) -> str:
@@ -155,11 +155,15 @@ class SpeechToText:
 
             chunk_duration = 0.1  # 100ms chunks
             chunk_samples = int(chunk_duration * self.sample_rate)
-            max_recording_time = 8.0  # Max seconds
-            silence_timeout = 0.7     # Stop after 700ms of silence once speech started
+            max_recording_time = config.max_command_seconds
+            silence_timeout = config.vad_silence_timeout
             # Relative to the current chunk, this copes with laptop mics whose
             # raw amplitude is much quieter or louder than the old fixed value.
-            energy_threshold = 0.010
+            energy_threshold = config.vad_energy_threshold
+            log.debug(
+                f"Voice capture started (max={max_recording_time}s, "
+                f"silence={silence_timeout}s, threshold={energy_threshold})"
+            )
 
             audio_chunks = []
             speech_started = False
@@ -199,7 +203,7 @@ class SpeechToText:
 
                     with sr.AudioFile(temp_wav.name) as source:
                         audio = self.recognizer.record(source)
-                    
+
                     text = self.recognizer.recognize_google(audio)
                     return text.strip()
                 except sr.UnknownValueError:

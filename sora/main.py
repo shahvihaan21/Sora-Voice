@@ -12,22 +12,31 @@ def main():
         import qasync
         from aegis.UI.main_window import MainWindow
         from aegis.UI.widgets.visualizer import VisualizerMode
-        app = QApplication(sys.argv); app.setApplicationName(config.app_name)
-        window = MainWindow(); window.show()
-        loop = qasync.QEventLoop(app); asyncio.set_event_loop(loop)
+        app = QApplication(sys.argv)
+        app.setApplicationName(config.app_name)
+        window = MainWindow()
+        window.show()
+        loop = qasync.QEventLoop(app)
+        asyncio.set_event_loop(loop)
         assistant = Assistant()
         listening = False
-        listener_task = None
         def state_changed(state):
             mode = getattr(VisualizerMode, state.value, VisualizerMode.IDLE)
             window.set_system_status(state.value.title(), mode)
+
         assistant.events.on('state_changed', state_changed)
         assistant.events.on('response', lambda text: window.append_message('Sora', text))
+
         async def run():
             window.set_system_status('Online', VisualizerMode.IDLE)
+            if not await assistant.llm.is_ollama_available():
+                window.append_message(
+                    'Sora', f'Warning: Ollama is not reachable at {config.ollama_host}.'
+                )
             window.append_message('Sora', 'Sora is online. How may I help?')
             while True:
                 await asyncio.sleep(0.2)
+
         async def capture_command():
             nonlocal listening
             if listening:
@@ -51,10 +60,14 @@ def main():
                 assistant.set_state(AssistantState.ERROR)
             finally:
                 listening = False
-        window.voice_trigger_requested.connect(lambda: asyncio.create_task(capture_command()))
+        window.voice_trigger_requested.connect(
+            lambda: asyncio.create_task(capture_command())
+        )
         with loop:
-            loop.create_task(run()); loop.run_forever()
+            loop.create_task(run())
+            loop.run_forever()
     except Exception:
         log.exception('Fatal application startup failure')
         raise
-if __name__ == '__main__': main()
+if __name__ == '__main__':
+    main()

@@ -32,8 +32,10 @@ if exist "jarvis\Scripts\python.exe" (
 :: Activate virtual environment
 call "%VENV_DIR%\Scripts\activate.bat"
 
-:: Check if requirements are installed
-python -c "import PyQt6, qasync, loguru, pydantic, dotenv" >nul 2>nul
+:: Check if all runtime requirements are installed. Voice imports are loaded
+:: during startup, so checking only the GUI packages makes the app appear to
+:: launch while microphone support fails with a missing-module error.
+python -c "import PyQt6, qasync, loguru, pydantic, dotenv, numpy, sounddevice, soundfile, speech_recognition, edge_tts, pyttsx3, httpx" >nul 2>nul
 if %errorlevel% neq 0 (
     echo [INFO] Installing required dependencies...
     pip install -r requirements.txt

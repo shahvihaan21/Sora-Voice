@@ -60,11 +60,11 @@ class ToolRegistry:
         return list(self._tools.values())
 
     # -- execution ----------------------------------------------------
-    def execute(self, name: str, **args) -> ToolResult:
+    def execute(self, tool_name: str, **args) -> ToolResult:
         """Validate and run a tool. Destructive tools require confirmation."""
-        tool = self.get(name)
+        tool = self.get(tool_name)
         if tool is None:
-            return ToolResult.fail(f"I don't have a tool called '{name}'.", error="unknown_tool")
+            return ToolResult.fail(f"I don't have a tool called '{tool_name}'.", error="unknown_tool")
         try:
             validated = tool.validate_args(args)
         except ToolError as exc:

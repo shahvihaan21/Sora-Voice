@@ -25,9 +25,12 @@ class Assistant:
                 elif pending and text.lower().strip() in ('no','cancel','stop'):
                     result=self.registry.cancel()
                 else:
-                    self.set_state(AssistantState.THINKING); decision=await self.router.decide(text)
+                    self.set_state(AssistantState.THINKING)
+                    decision=await self.router.decide(text)
                     if decision.is_tool_call:
-                        self.set_state(AssistantState.EXECUTING); result=self.registry.execute(decision.tool,**decision.args)
+                        self.set_state(AssistantState.EXECUTING)
+                        # Keep the tool identifier separate from tool arguments.
+                        result=self.registry.execute(decision.tool, **decision.args)
                     else:
                         result=None
                 if result is not None:
