@@ -5,11 +5,12 @@ import sys
 import os
 from pathlib import Path
 
-# Add 'aegis' directory to sys.path
+# Add root and aegis directories to sys.path so both 'aegis' package and internal imports resolve
 root_dir = Path(__file__).resolve().parent
 aegis_dir = root_dir / "aegis"
-if str(aegis_dir) not in sys.path:
-    sys.path.insert(0, str(aegis_dir))
+for p in (str(root_dir), str(aegis_dir)):
+    if p not in sys.path:
+        sys.path.insert(0, p)
 
 import asyncio
 

@@ -1,1 +1,0 @@
-"Sora HUD user interface."""

@@ -27,21 +27,7 @@ ollama pull llama3.2:3b
 ollama run llama3.2:3b
 ```
 
-### 2. Simple One-Click Run (Windows)
-Double-click `run.bat` or run in terminal:
-```cmd
-run.bat
-```
-
-### 3. Manual Setup
-Activate your Python environment and install dependencies:
-```bash
-pip install -r requirements.txt
-```
-
-To enable the voice pack, copy `.env.example` to `.env` and keep `TTS_PROFILE=cinematic_assistant`. `jarvis_classic` remains as a backward-compatible alias. Use `TTS_PROFILE=neutral` or set `TTS_VOICE`, `TTS_RATE`, `TTS_PITCH`, and `TTS_VOLUME` to customize it.
-
-### 4. Launch Jarvis
+### 2. Launch Assistant
 ```bash
 python run.py
 ```
@@ -77,9 +63,8 @@ Jarvis/
 │   │       └── visualizer.py     # Siri-style multi-layer fluid harmonic visualizer
 │   └── main.py                   # Async controller, command queue & event loop
 ├── run.py                        # Root Python launcher
-├── run.bat                       # Windows double-click launcher
 ├── test_system.py                # Automated 6-part test suite
 ├── requirements.txt              # Project dependencies
-├── .env.example                  # Environment configuration template
+├── .env                          # Environment configuration
 └── logs/                         # Application logs
 ```
