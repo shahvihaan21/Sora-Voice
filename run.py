@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+
 # Sora Voice root launcher.
 import sys
 from pathlib import Path
