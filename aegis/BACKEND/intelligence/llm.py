@@ -11,6 +11,7 @@ class IntelligenceEngine:
         self.host = config.ollama_host.rstrip('/')
         self.model_id = config.ollama_model or "jarvis-ft:latest"
         self.conversation_history: List[Dict[str, str]] = []
+        self._client: httpx.AsyncClient | None = None
 
         self.system_instruction = (
             "You are Jarvis, a lightning-fast, ultra-smart, elegant, and friendly AI desktop assistant. "
@@ -21,12 +22,28 @@ class IntelligenceEngine:
 
         log.info(f"Initialized Jarvis AI Engine (Ollama: {self.model_id} @ {self.host})")
 
+    def _client_or_new(self, timeout: float) -> httpx.AsyncClient:
+        # persistent client avoids TLS/TCP reconnect per request
+        try:
+            if self._client is None or self._client.is_closed:
+                self._client = httpx.AsyncClient(timeout=timeout)
+        except Exception:
+            return httpx.AsyncClient(timeout=timeout)
+        return self._client
+
+    async def prewarm(self):
+        try:
+            c = self._client_or_new(2.0)
+            await c.get(f"{self.host}/api/tags")
+        except Exception:
+            pass
+
     async def is_ollama_available(self) -> bool:
         """Check if local Ollama server is running."""
         try:
-            async with httpx.AsyncClient(timeout=1.5) as client:
-                res = await client.get(f"{self.host}/api/tags")
-                return res.status_code == 200
+            c = self._client_or_new(1.5)
+            res = await c.get(f"{self.host}/api/tags")
+            return res.status_code == 200
         except Exception:
             return False
 
@@ -99,7 +116,8 @@ class IntelligenceEngine:
         is_first_chunk = True
         timeout = getattr(config, "ollama_timeout", 10.0)
         try:
-            async with httpx.AsyncClient(timeout=timeout) as client:
+            client = self._client_or_new(timeout)
+            try:
                 async with client.stream(
                     "POST",
                     f"{self.host}/api/chat",
@@ -157,6 +175,13 @@ class IntelligenceEngine:
                         return
                     else:
                         log.warning(f"Ollama returned HTTP status {response.status_code}")
+            except Exception as _se:
+                # stale pooled connection — retry once with a fresh client
+                try:
+                    self._client = None
+                except Exception:
+                    pass
+                raise _se
 
         except httpx.ConnectError:
             log.warning("Could not connect to Ollama server.")

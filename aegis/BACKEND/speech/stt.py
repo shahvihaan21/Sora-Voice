@@ -53,6 +53,18 @@ class SpeechToText:
         """Request immediate release of an active recording stream."""
         self._stop_event.set()
 
+    def prewarm(self):
+        """Import heavy STT deps once at startup, off the critical path."""
+        try:
+            _ = self.recognizer
+        except Exception:
+            pass
+        for mod in ("sounddevice", "soundfile", "speech_recognition"):
+            try:
+                __import__("importlib").import_module(mod)
+            except Exception:
+                pass
+
     async def listen_for_wake_word(self) -> bool:
         """
         Listens in short dynamic chunks for Jarvis wake words.

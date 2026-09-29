@@ -18,15 +18,14 @@ class GlassPanel(QWidget):
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        
-        # Draw sleek dark rounded container
         rect = self.rect().adjusted(1, 1, -1, -1)
-        
-        # Obsidian dark backdrop
-        painter.setBrush(QBrush(QColor(11, 15, 23, 245)))
-        # Subtle rim border
-        pen = QPen(QColor(255, 255, 255, 22))
+        painter.setBrush(QBrush(QColor(8, 11, 20, 246)))
+        pen = QPen(QColor(148, 163, 184, 30))
         pen.setWidth(1)
         painter.setPen(pen)
-        
-        painter.drawRoundedRect(rect, 22, 22)
+        painter.drawRoundedRect(rect, 20, 20)
+        # faint top highlight
+        hi = QPen(QColor(255, 255, 255, 14))
+        hi.setWidth(1)
+        painter.setPen(hi)
+        painter.drawLine(rect.left() + 24, rect.top() + 1, rect.right() - 24, rect.top() + 1)

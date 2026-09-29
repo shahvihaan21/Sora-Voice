@@ -113,6 +113,59 @@ async def main_controller(window: MainWindow):
 
     window.voice_trigger_requested.connect(on_manual_voice_trigger)
 
+    def _on_text(t):
+        try:
+            command_queue.put_nowait(t)
+        except Exception:
+            pass
+
+    try:
+        window.text_submit_requested.connect(_on_text)
+    except Exception:
+        pass
+
+    def _on_cancel():
+        asyncio.create_task(stop_all_operations())
+
+    try:
+        window.cancel_requested.connect(_on_cancel)
+    except Exception:
+        pass
+
+    async def _health():
+        import httpx as _hx
+        _hc = _hx.AsyncClient(timeout=2.0)
+        try:
+            while True:
+                try:
+                    mic = bool(getattr(stt, "has_microphone", False))
+                    try:
+                        host = getattr(config, "ollama_host", "http://localhost:11434")
+                        r = await _hc.get(host.rstrip("/") + "/api/tags")
+                        ai = (r.status_code == 200)
+                    except Exception:
+                        ai = False
+                    window.set_health(mic=mic, ai=ai, voice=True, local=True)
+                except Exception:
+                    pass
+                await asyncio.sleep(15.0)
+        finally:
+            try:
+                await _hc.aclose()
+            except Exception:
+                pass
+
+    asyncio.create_task(_health())
+
+    from BACKEND.perf import mark as _mark
+    asyncio.create_task(llm.prewarm())
+    asyncio.create_task(tts.prewarm())
+    try:
+        await asyncio.to_thread(stt.prewarm)
+    except Exception:
+        pass
+    _mark("startup: modules ready")
+
     # Process Commands from Queue
     while True:
         try:
@@ -129,17 +182,34 @@ async def main_controller(window: MainWindow):
             # Update status to Thinking
             window.set_system_status("Thinking...", VisualizerMode.THINKING)
             
-            # Generate the complete response before displaying/speaking it.
-            # This avoids chopped chat bubbles and overlapping TTS sentences.
+            # Stream: render + speak each clause as it arrives (no full wait).
             async def process_response():
+                import time as _t
+                from BACKEND.perf import mark as _m
                 response_parts = []
+                last_ui = 0.0
+                spoken = ""
+                first_chunk = True
                 async for sentence in llm.generate_response_stream(command):
-                    if sentence:
-                        response_parts.append(sentence.strip())
+                    s = (sentence or "").strip()
+                    if not s:
+                        continue
+                    if first_chunk:
+                        first_chunk = False
+                        _m("LLM first chunk")
+                        window.set_system_status("Speaking...", VisualizerMode.SPEAKING)
+                    response_parts.append(s)
+                    spoken = " ".join(response_parts)
+                    now = _t.monotonic()
+                    if now - last_ui >= 0.12:
+                        last_ui = now
+                        window.append_message("Jarvis", spoken)
+                    await tts.speak_stream(s)
                 response = " ".join(response_parts).strip()
                 if response:
                     window.append_message("Jarvis", response)
-                    await tts.speak(response)
+                    _m("LLM complete, TTS queued")
+                await tts.flush()
 
             active_response_task = asyncio.create_task(process_response())
             try:
