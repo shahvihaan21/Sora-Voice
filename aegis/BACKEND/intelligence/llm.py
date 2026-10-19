@@ -114,6 +114,7 @@ class IntelligenceEngine:
         full_reply = ""
         current_chunk = ""
         is_first_chunk = True
+        has_yielded = False
         timeout = getattr(config, "ollama_timeout", 10.0)
         try:
             client = self._client_or_new(timeout)
@@ -155,6 +156,7 @@ class IntelligenceEngine:
                                     if has_sentence_end or has_clause_break or len(words) >= 15:
                                         piece = current_chunk.strip()
                                         if piece:
+                                            has_yielded = True
                                             yield piece
                                             current_chunk = ""
                                             is_first_chunk = False
@@ -162,6 +164,7 @@ class IntelligenceEngine:
                                 pass
 
                         if current_chunk.strip():
+                            has_yielded = True
                             yield current_chunk.strip()
 
                         if full_reply.strip():
@@ -188,10 +191,11 @@ class IntelligenceEngine:
         except Exception as e:
             log.error(f"Error during Ollama inference: {e}")
 
-        # Fallback if streaming failed
-        reply = self._offline_fallback_response(user_input)
-        self._save_history(user_input, reply)
-        yield reply
+        # Fallback if streaming failed and no chunks were produced
+        if not has_yielded:
+            reply = self._offline_fallback_response(user_input)
+            self._save_history(user_input, reply)
+            yield reply
 
     def _save_history(self, user_msg: str, sora_msg: str):
         self.conversation_history.append({"user": user_msg, "sora": sora_msg})

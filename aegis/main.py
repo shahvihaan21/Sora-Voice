@@ -184,11 +184,8 @@ async def main_controller(window: MainWindow):
             
             # Stream: render + speak each clause as it arrives (no full wait).
             async def process_response():
-                import time as _t
                 from BACKEND.perf import mark as _m
                 response_parts = []
-                last_ui = 0.0
-                spoken = ""
                 first_chunk = True
                 async for sentence in llm.generate_response_stream(command):
                     s = (sentence or "").strip()
@@ -200,10 +197,7 @@ async def main_controller(window: MainWindow):
                         window.set_system_status("Speaking...", VisualizerMode.SPEAKING)
                     response_parts.append(s)
                     spoken = " ".join(response_parts)
-                    now = _t.monotonic()
-                    if now - last_ui >= 0.12:
-                        last_ui = now
-                        window.append_message("Jarvis", spoken)
+                    window.show_response(spoken)
                     await tts.speak_stream(s)
                 response = " ".join(response_parts).strip()
                 if response:
