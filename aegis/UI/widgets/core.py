@@ -25,10 +25,6 @@ class AICore(QWidget):
         self._cached_size = None
         self._cached_geom = None
 
-    def set_mode(self, mode: str):
-        if mode == self.mode:
-            return
-
     def set_level(self, v: float):
         self._target = max(0.0, min(1.0, v))
 

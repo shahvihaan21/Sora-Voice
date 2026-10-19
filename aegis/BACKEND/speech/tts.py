@@ -78,6 +78,69 @@ class TextToSpeech:
         except Exception as e:
             log.debug(f"Could not select an offline male voice: {e}")
 
+    async def _play_audio_file(self, filepath: str, text: str) -> bool:
+        """Play audio file across Windows (MCI) and non-Windows (CLI audio players/python audio)."""
+        if hasattr(ctypes, "windll"):
+            try:
+                alias = f"jarvis_audio_{abs(hash(text))}_{os.getpid()}"
+                self._active_alias = alias
+                ctypes.windll.winmm.mciSendStringW(f'close {alias}', None, 0, None)
+                open_cmd = f'open "{filepath}" alias {alias}'
+                res = ctypes.windll.winmm.mciSendStringW(open_cmd, None, 0, None)
+                if res == 0:
+                    ctypes.windll.winmm.mciSendStringW(f'play {alias}', None, 0, None)
+                    status_buf = ctypes.create_unicode_buffer(256)
+                    for _ in range(25):
+                        ctypes.windll.winmm.mciSendStringW(f'status {alias} mode', status_buf, 256, None)
+                        if status_buf.value:
+                            break
+                        await asyncio.sleep(0.04)
+                    while status_buf.value == "playing":
+                        status_buf.value = ""
+                        ctypes.windll.winmm.mciSendStringW(f'status {alias} mode', status_buf, 256, None)
+                        await asyncio.sleep(0.04)
+                    ctypes.windll.winmm.mciSendStringW(f'close {alias}', None, 0, None)
+                    self._active_alias = None
+                    return True
+            except Exception as e:
+                log.debug(f"Windows MCI playback failed: {e}")
+
+        # Non-Windows or MCI fallback: try system players
+        import shutil
+        for player in ("ffplay", "mpv", "afplay", "aplay", "cvlc"):
+            cmd_path = shutil.which(player)
+            if cmd_path:
+                try:
+                    args = [cmd_path]
+                    if player == "ffplay":
+                        args.extend(["-nodisp", "-autoexit", "-loglevel", "quiet"])
+                    elif player == "mpv":
+                        args.extend(["--no-terminal", "--really-quiet"])
+                    elif player == "cvlc":
+                        args.extend(["--play-and-exit"])
+                    args.append(filepath)
+                    proc = await asyncio.create_subprocess_exec(
+                        *args, stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL
+                    )
+                    await proc.wait()
+                    return proc.returncode == 0
+                except Exception as e:
+                    log.debug(f"Player {player} failed: {e}")
+
+        # Try playsound or pygame as additional fallbacks if installed
+        try:
+            import pygame
+            pygame.mixer.init()
+            pygame.mixer.music.load(filepath)
+            pygame.mixer.music.play()
+            while pygame.mixer.music.get_busy():
+                await asyncio.sleep(0.05)
+            return True
+        except Exception:
+            pass
+
+        return False
+
     def _speak_offline(self, text: str):
         """Fallback local offline text to speech using pyttsx3 or SAPI5."""
         try:
@@ -177,33 +240,7 @@ class TextToSpeech:
                 )
                 await communicate.save(temp_file.name)
 
-                # Play via Windows MCI
-                alias = f"jarvis_audio_{abs(hash(text))}_{os.getpid()}"
-                self._active_alias = alias
-                ctypes.windll.winmm.mciSendStringW(f'close {alias}', None, 0, None)
-                
-                open_cmd = f'open "{temp_file.name}" alias {alias}'
-                res = ctypes.windll.winmm.mciSendStringW(open_cmd, None, 0, None)
-                
-                if res == 0:
-                    ctypes.windll.winmm.mciSendStringW(f'play {alias}', None, 0, None)
-                    
-                    # MCI can return an empty status briefly during startup.
-                    # Wait for a real state so audio is not cut off early.
-                    status_buf = ctypes.create_unicode_buffer(256)
-                    for _ in range(25):
-                        ctypes.windll.winmm.mciSendStringW(f'status {alias} mode', status_buf, 256, None)
-                        if status_buf.value:
-                            break
-                        await asyncio.sleep(0.04)
-                    while status_buf.value == "playing":
-                        status_buf.value = ""
-                        ctypes.windll.winmm.mciSendStringW(f'status {alias} mode', status_buf, 256, None)
-                        await asyncio.sleep(0.04)
-                        
-                    ctypes.windll.winmm.mciSendStringW(f'close {alias}', None, 0, None)
-                    self._active_alias = None
-                    success = True
+                success = await self._play_audio_file(temp_file.name, text)
 
                 # Clean up temporary mp3
                 try:

@@ -5,6 +5,10 @@ import sys
 import os
 from pathlib import Path
 
+# Set Qt offscreen platform if running headless on Linux/CI
+if sys.platform.startswith("linux") and not os.getenv("DISPLAY") and not os.getenv("QT_QPA_PLATFORM"):
+    os.environ["QT_QPA_PLATFORM"] = "offscreen"
+
 # Add root and aegis directories to sys.path so both 'aegis' package and internal imports resolve
 root_dir = Path(__file__).resolve().parent
 aegis_dir = root_dir / "aegis"
