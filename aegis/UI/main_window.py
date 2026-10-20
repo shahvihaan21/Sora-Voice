@@ -207,10 +207,9 @@ class MainWindow(QMainWindow):
         you = sender.lower() not in ["sora", "aegis", "jarvis"]
         if not you:
             now = _t.monotonic()
-            if now - getattr(self, "_resp_ts", 0.0) >= 0.1 or len(text) < 60:
+            if now - getattr(self, "_resp_ts", 0.0) >= 0.05 or len(text) < 60:
                 self._resp_ts = now
                 self.show_response(text)
-        # cap history growth to avoid DOM-like bloat
         try:
             if self.chat_display.document().blockCount() > 120:
                 cur = self.chat_display.textCursor()
@@ -251,10 +250,20 @@ class MainWindow(QMainWindow):
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
-            self.drag_position = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
-            event.accept()
+            child = self.childAt(event.position().toPoint())
+            if child in (None, self.central_widget, self.glass_panel) or isinstance(child, QLabel):
+                self.drag_position = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
+                event.accept()
+                return
+        super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
-        if event.buttons() == Qt.MouseButton.LeftButton:
+        if event.buttons() == Qt.MouseButton.LeftButton and not self.drag_position.isNull():
             self.move(event.globalPosition().toPoint() - self.drag_position)
             event.accept()
+            return
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        self.drag_position = QPoint()
+        super().mouseReleaseEvent(event)

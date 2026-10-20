@@ -65,9 +65,16 @@ class SpeechToText:
             except Exception:
                 pass
 
+    def _array_to_audio_data(self, audio_array: np.ndarray):
+        """Convert float32 numpy audio array directly into SpeechRecognition AudioData without disk I/O."""
+        import speech_recognition as sr
+        int16_data = np.clip(audio_array * 32767.0, -32768, 32767).astype(np.int16)
+        raw_bytes = int16_data.tobytes()
+        return sr.AudioData(raw_bytes, self.sample_rate, 2)
+
     async def listen_for_wake_word(self) -> bool:
         """
-        Listens in short dynamic chunks for Jarvis wake words.
+        Listens in short dynamic chunks for Jarvis wake words with zero disk I/O.
         """
         if not self.has_microphone:
             await asyncio.sleep(2)
@@ -77,7 +84,6 @@ class SpeechToText:
 
         def _record_and_check() -> bool:
             import sounddevice as sd
-            import soundfile as sf
             import speech_recognition as sr
 
             duration = 1.8  # Quick window
@@ -90,35 +96,25 @@ class SpeechToText:
                 )
                 sd.wait()
 
-                # Check if audio has energy
-                if np.max(np.abs(recording)) < 0.012:
+                # Fast amplitude energy check before running recognizer
+                max_amp = float(np.max(np.abs(recording)))
+                if max_amp < 0.012:
                     return False
 
-                temp_wav = tempfile.NamedTemporaryFile(delete=False, suffix=".wav")
-                temp_wav.close()
-                sf.write(temp_wav.name, recording, self.sample_rate)
-
                 try:
-                    with sr.AudioFile(temp_wav.name) as source:
-                        audio = self.recognizer.record(source)
-                    text = self.recognizer.recognize_google(audio).lower()
+                    audio_data = self._array_to_audio_data(recording)
+                    text = self.recognizer.recognize_google(audio_data).lower()
                     log.debug(f"Wake check heard: '{text}'")
 
                     for ww in self.wake_words:
                         if ww in text:
                             return True
                 except sr.UnknownValueError:
-                    # Silence or unrecognized audio is normal during wake checks
                     pass
                 except sr.RequestError as e:
                     log.debug(f"Google STT network notice: {e}")
                 except Exception as e:
                     log.debug(f"STT recognition notice: {e}")
-                finally:
-                    try:
-                        os.unlink(temp_wav.name)
-                    except Exception:
-                        pass
 
             except Exception as e:
                 log.debug(f"Wake capture notice: {e}")
@@ -146,7 +142,7 @@ class SpeechToText:
     async def listen_for_command(self) -> str:
         """
         Listens dynamically for the user's spoken command with silence detection.
-        Stops recording immediately when speech stops, eliminating delay.
+        Converts in-memory float PCM directly into AudioData without disk file writes.
         """
         if not self.has_microphone:
             return ""
@@ -161,7 +157,6 @@ class SpeechToText:
 
         def _record_command_dynamic() -> str:
             import sounddevice as sd
-            import soundfile as sf
             import speech_recognition as sr
             import time
 
@@ -169,8 +164,6 @@ class SpeechToText:
             chunk_samples = int(chunk_duration * self.sample_rate)
             max_recording_time = config.max_command_seconds
             silence_timeout = config.vad_silence_timeout
-            # Relative to the current chunk, this copes with laptop mics whose
-            # raw amplitude is much quieter or louder than the old fixed value.
             energy_threshold = config.vad_energy_threshold
             log.debug(
                 f"Voice capture started (max={max_recording_time}s, "
@@ -187,10 +180,10 @@ class SpeechToText:
                     while time.time() - start_time < max_recording_time and not self._stop_event.is_set():
                         chunk, _ = stream.read(chunk_samples)
                         audio_chunks.append(chunk)
-                        max_val = float(np.max(np.abs(chunk)))
 
-                        rms = float(np.sqrt(np.mean(np.square(chunk))))
-                        if max_val >= energy_threshold or rms >= energy_threshold * 0.35:
+                        # Optimized single-pass VAD check on absolute max amplitude
+                        max_val = float(np.max(np.abs(chunk)))
+                        if max_val >= energy_threshold:
                             speech_started = True
                             silence_start_time = None
                         elif speech_started:
@@ -205,18 +198,12 @@ class SpeechToText:
 
                 full_audio = np.concatenate(audio_chunks, axis=0)
 
-                temp_wav = tempfile.NamedTemporaryFile(delete=False, suffix=".wav")
-                temp_wav.close()
-                sf.write(temp_wav.name, full_audio, self.sample_rate)
-
                 try:
                     if self.on_processing_callback:
                         self.on_processing_callback()
 
-                    with sr.AudioFile(temp_wav.name) as source:
-                        audio = self.recognizer.record(source)
-
-                    text = self.recognizer.recognize_google(audio)
+                    audio_data = self._array_to_audio_data(full_audio)
+                    text = self.recognizer.recognize_google(audio_data)
                     return text.strip()
                 except sr.UnknownValueError:
                     log.debug("Speech was not intelligible.")
@@ -224,11 +211,6 @@ class SpeechToText:
                 except sr.RequestError as e:
                     log.warning(f"STT recognition request error: {e}")
                     return ""
-                finally:
-                    try:
-                        os.unlink(temp_wav.name)
-                    except Exception:
-                        pass
 
             except Exception as e:
                 log.warning(f"Voice recognition error: {e}")
