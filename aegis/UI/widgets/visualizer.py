@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import QWidget
 from PyQt6.QtGui import (
     QPainter, QColor, QPen, QBrush, QLinearGradient,
-    QRadialGradient, QPainterPath
+    QPainterPath
 )
 from PyQt6.QtCore import Qt, QTimer
 import math
@@ -31,19 +31,16 @@ class AudioVisualizer(QWidget):
         self.level = 0.12
         self._target = 0.12
 
-        # 25 FPS active / 11 FPS idle (adaptive per mode)
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_animation)
         self.timer.start(90)
         self._cached_w = 0
-        self._cached_cols = None
         self._xs = []  # cached x-samples per width
 
     def set_mode(self, mode: str):
         if mode == self.mode:
             return
         self.mode = mode
-        self._cached_cols = None
         interval = {VisualizerMode.IDLE: 90, VisualizerMode.ERROR: 250,
                     VisualizerMode.CONFIRMATION_REQUIRED: 120,
                     VisualizerMode.THINKING: 60, VisualizerMode.EXECUTING: 50,
@@ -99,9 +96,9 @@ class AudioVisualizer(QWidget):
         mid_y = height / 2.0
         (r1, g1, b1), (r2, g2, b2) = self._cols()
         layers = [
-            {"amp": 8 + self.level * 22, "f1": 2.2, "pm": 1.0, "sa": 110, "wd": 1.2},
-            {"amp": 11 + self.level * 28, "f1": 3.1, "pm": -0.8, "sa": 150, "wd": 1.5},
-            {"amp": 6 + self.level * 15, "f1": 4.3, "pm": 1.3, "sa": 80, "wd": 1.0},
+            {"amp": 8 + self.level * 22, "f1": 2.2, "pm": 1.0, "sa": 110, "wd": 1.8, "glow": True},
+            {"amp": 11 + self.level * 28, "f1": 3.1, "pm": -0.8, "sa": 150, "wd": 2.2, "glow": False},
+            {"amp": 6 + self.level * 15, "f1": 4.3, "pm": 1.3, "sa": 80, "wd": 1.2, "glow": False},
         ]
         # cache x-samples + envelope per width to avoid recompute
         if int(width) != self._cached_w or not self._xs:
@@ -129,12 +126,17 @@ class AudioVisualizer(QWidget):
             grad.setColorAt(0.3, QColor(r1, g1, b1, L["sa"]))
             grad.setColorAt(0.7, QColor(r2, g2, b2, L["sa"]))
             grad.setColorAt(0.92, QColor(r2, g2, b2, 0))
+
+            # Render optional ambient glow pass behind primary wave line
+            if L["glow"]:
+                glow_pen = QPen(QBrush(grad), L["wd"] * 3.0)
+                glow_pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+                glow_pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+                painter.setPen(glow_pen)
+                painter.drawPath(path)
+
             pen = QPen(QBrush(grad), L["wd"])
             pen.setCapStyle(Qt.PenCapStyle.RoundCap)
             pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
             painter.setPen(pen)
             painter.drawPath(path)
-        return
-
-    def _draw_fluid_ribbon(self, painter, width, mid_y, cfg):
-        return

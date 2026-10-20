@@ -12,6 +12,7 @@ class IntelligenceEngine:
         self.model_id = config.ollama_model or "jarvis-ft:latest"
         self.conversation_history: List[Dict[str, str]] = []
         self._client: httpx.AsyncClient | None = None
+        self._clean_trans = str.maketrans("", "", "*_#`")
 
         self.system_instruction = (
             "You are Jarvis, a lightning-fast, ultra-smart, elegant, and friendly AI desktop assistant. "
@@ -115,7 +116,9 @@ class IntelligenceEngine:
         current_chunk = ""
         is_first_chunk = True
         has_yielded = False
+        word_count = 0
         timeout = getattr(config, "ollama_timeout", 10.0)
+
         try:
             client = self._client_or_new(timeout)
             try:
@@ -142,23 +145,23 @@ class IntelligenceEngine:
                                 data = json.loads(line)
                                 token = data.get("message", {}).get("content", "")
                                 if token:
-                                    # Strip asterisks, hashes, backticks for clean speech
-                                    clean_token = re.sub(r"[\*\_#`]", "", token)
+                                    clean_token = token.translate(self._clean_trans)
                                     full_reply += clean_token
                                     current_chunk += clean_token
+                                    if " " in clean_token or "\n" in clean_token:
+                                        word_count += clean_token.count(" ") + clean_token.count("\n")
 
-                                    # Fast yielding strategy:
-                                    # Yield first chunk fast (e.g. after comma or 4 words) to minimize Time-to-First-Audio
-                                    words = current_chunk.strip().split()
-                                    has_sentence_end = any(current_chunk.endswith(p) for p in [". ", "? ", "! ", ".\n", "?\n", "!\n"])
-                                    has_clause_break = is_first_chunk and (len(words) >= 4 and any(current_chunk.endswith(p) for p in [", ", "; ", ": "]))
+                                    # Fast yielding strategy for minimum TTFA (Time-To-First-Audio):
+                                    has_sentence_end = any(current_chunk.endswith(p) for p in (". ", "? ", "! ", ".\n", "?\n", "!\n", ".", "?", "!"))
+                                    has_clause_break = is_first_chunk and word_count >= 3 and any(current_chunk.endswith(p) for p in (", ", "; ", ": ", ",", ";"))
 
-                                    if has_sentence_end or has_clause_break or len(words) >= 15:
+                                    if (has_sentence_end and word_count >= 1) or has_clause_break or word_count >= 12:
                                         piece = current_chunk.strip()
                                         if piece:
                                             has_yielded = True
                                             yield piece
                                             current_chunk = ""
+                                            word_count = 0
                                             is_first_chunk = False
                             except json.JSONDecodeError:
                                 pass
@@ -179,7 +182,6 @@ class IntelligenceEngine:
                     else:
                         log.warning(f"Ollama returned HTTP status {response.status_code}")
             except Exception as _se:
-                # stale pooled connection — retry once with a fresh client
                 try:
                     self._client = None
                 except Exception:
