@@ -1,0 +1,15 @@
+{
+  "name": "sora-voice-web-preview",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Live interactive browser preview of Sora-Voice HUD interface for GitHubBox & CodeSandbox",
+  "type": "module",
+  "scripts": {
+    "dev": "vite web-preview --host 0.0.0.0 --port 3000",
+    "build": "vite build web-preview --outDir ../dist",
+    "preview": "vite preview --host 0.0.0.0 --port 3000"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0"
+  }
+}

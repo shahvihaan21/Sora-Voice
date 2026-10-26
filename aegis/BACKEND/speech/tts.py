@@ -26,8 +26,7 @@ class TextToSpeech:
         self._started = False
 
     async def stop(self):
-        """Stop Windows playback immediately when the user disables the mic."""
-        # drop queued sentences so interruption is instant
+        """Stop playback immediately when requested."""
         try:
             while not self._sentence_queue.empty():
                 try:
@@ -37,6 +36,15 @@ class TextToSpeech:
                     break
         except Exception:
             pass
+
+        if self._player_task and not self._player_task.done():
+            self._player_task.cancel()
+            try:
+                await self._player_task
+            except (asyncio.CancelledError, Exception):
+                pass
+            self._player_task = None
+
         alias = self._active_alias
         if alias and hasattr(ctypes, "windll"):
             try:
@@ -45,12 +53,20 @@ class TextToSpeech:
             except Exception as e:
                 log.debug(f"Could not stop active speech: {e}")
         self._active_alias = None
-        self.is_speaking = False
+
         if self._pyttsx3_engine:
             try:
                 self._pyttsx3_engine.stop()
             except Exception:
                 pass
+
+        if self.is_speaking:
+            self.is_speaking = False
+            if self.on_end_callback:
+                try:
+                    self.on_end_callback()
+                except Exception:
+                    pass
 
     def _get_offline_engine(self):
         if self._pyttsx3_engine is None:

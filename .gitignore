@@ -12,6 +12,10 @@ venv/
 ENV/
 jarvis/
 
+# Node / Web Preview build
+node_modules/
+dist/
+
 # Logs & Data
 logs/*.log
 *.log

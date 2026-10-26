@@ -161,14 +161,14 @@ class MainWindow(QMainWindow):
             return
         self._last_mode = mode
         self._last_text = text
-        m = {VisualizerMode.IDLE: ("ONLINE", "Ready", "READY"),
-             VisualizerMode.LISTENING: ("LISTENING", "Listening... speak now", "LISTENING"),
-             VisualizerMode.THINKING: ("THINKING", "Processing...", "THINKING"),
-             VisualizerMode.EXECUTING: ("WORKING", "Applying action...", "WORKING"),
-             VisualizerMode.CONFIRMATION_REQUIRED: ("CONFIRM", "Confirm action", "CONFIRM"),
-             VisualizerMode.ERROR: ("ERROR", text or "Error", "SYSTEM ERROR"),
-             VisualizerMode.SPEAKING: ("SPEAKING", "Speaking...", "SPEAKING")}
-        badge, hint, state = m.get(mode, ("ONLINE", text, "READY"))
+        m = {VisualizerMode.IDLE: ("ONLINE", text or "Ready", "READY"),
+             VisualizerMode.LISTENING: ("LISTENING", text or "Listening... speak now", "LISTENING"),
+             VisualizerMode.THINKING: ("THINKING", text or "Processing...", "THINKING"),
+             VisualizerMode.EXECUTING: ("WORKING", text or "Applying action...", "WORKING"),
+             VisualizerMode.CONFIRMATION_REQUIRED: ("CONFIRM", text or "Confirm action", "CONFIRM"),
+             VisualizerMode.ERROR: ("ERROR", text or "System error", "SYSTEM ERROR"),
+             VisualizerMode.SPEAKING: ("SPEAKING", text or "Speaking...", "SPEAKING")}
+        badge, hint, state = m.get(mode, ("ONLINE", text or "Ready", "READY"))
         self.lbl_status.setText(badge)
         self.lbl_hint.setText(hint)
         self.lbl_state.setText(state)

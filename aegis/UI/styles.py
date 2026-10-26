@@ -1,4 +1,17 @@
 # SORA HUD stylesheet — restrained graphite + cyan/violet state accents.
+"""
+Sora HUD Palette & QSS Stylesheet.
+Defines color constants and PyQt QSS style rules for glassmorphism HUD windows,
+status badges, chat controls, and pill input containers.
+"""
+
+HUD_ACCENT_CYAN = "#38bdf8"
+HUD_ACCENT_TEAL = "#22d3ee"
+HUD_ACCENT_INDIGO = "#818cf8"
+HUD_ACCENT_PURPLE = "#c4b5fd"
+HUD_ACCENT_AMBER = "#fcd34d"
+HUD_ACCENT_RED = "#fca5a5"
+
 MAIN_STYLE = """
 QWidget { color: #e2e8f0; font-family: 'Segoe UI', 'Inter', -apple-system, sans-serif; }
 #MainWindow { background-color: transparent; }

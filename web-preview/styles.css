@@ -1,0 +1,376 @@
+/* Sora HUD Glassmorphism & Obsidian Dark Stylesheet */
+:root {
+  --bg-dark: #080b14;
+  --panel-border: rgba(148, 163, 184, 0.22);
+  --text-main: #e2e8f0;
+  --text-sub: #64748b;
+  --cyan-idle: #7dd3fc;
+  --teal-listen: #22d3ee;
+  --indigo-think: #a5b4fc;
+  --purple-speak: #c4b5fd;
+  --red-error: #fca5a5;
+  --font-family: 'Segoe UI', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: radial-gradient(circle at 50% 30%, #0f172a 0%, #020617 100%);
+  color: var(--text-main);
+  font-family: var(--font-family);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  overflow-x: hidden;
+}
+
+/* Glassmorphism Outer Window */
+.hud-window {
+  background-color: rgba(8, 11, 20, 0.96);
+  border: 1px solid var(--panel-border);
+  border-radius: 20px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  width: 100%;
+  max-width: 720px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  backdrop-filter: blur(12px);
+  position: relative;
+}
+
+/* Header Section */
+.hud-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.brand {
+  display: flex;
+  flex-direction: column;
+}
+
+.lbl-title {
+  color: #f1f5f9;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 4px;
+}
+
+.lbl-sub {
+  color: var(--text-sub);
+  font-size: 10px;
+  letter-spacing: 2px;
+}
+
+.status-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.status-badge {
+  border-radius: 10px;
+  padding: 3px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+}
+
+.status-badge[data-mode="IDLE"] {
+  background: rgba(56, 189, 248, 0.12);
+  color: var(--cyan-idle);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+}
+
+.status-badge[data-mode="LISTENING"] {
+  background: rgba(34, 211, 238, 0.14);
+  color: var(--teal-listen);
+  border: 1px solid rgba(34, 211, 238, 0.55);
+}
+
+.status-badge[data-mode="THINKING"] {
+  background: rgba(129, 140, 248, 0.14);
+  color: var(--indigo-think);
+  border: 1px solid rgba(129, 140, 248, 0.55);
+}
+
+.status-badge[data-mode="SPEAKING"] {
+  background: rgba(167, 139, 250, 0.14);
+  color: var(--purple-speak);
+  border: 1px solid rgba(167, 139, 250, 0.55);
+}
+
+.status-badge[data-mode="ERROR"] {
+  background: rgba(248, 113, 113, 0.12);
+  color: var(--red-error);
+  border: 1px solid rgba(248, 113, 113, 0.5);
+}
+
+.action-hint {
+  color: var(--text-sub);
+  font-size: 11px;
+}
+
+.window-controls {
+  display: flex;
+  gap: 4px;
+}
+
+.win-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-sub);
+  font-size: 14px;
+  width: 30px;
+  height: 26px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.win-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.btn-close:hover {
+  background: rgba(239, 68, 68, 0.35);
+  color: var(--red-error);
+}
+
+/* AI Core Wrapper */
+.core-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 4px 0;
+}
+
+#coreCanvas {
+  width: 200px;
+  height: 200px;
+}
+
+/* State Label */
+.state-label {
+  text-align: center;
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 5px;
+}
+
+/* Waveform Wrapper */
+.waveform-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 60px;
+}
+
+#waveformCanvas {
+  width: 100%;
+  max-width: 560px;
+  height: 60px;
+}
+
+/* Response Label */
+.response-label {
+  text-align: center;
+  color: var(--text-main);
+  font-size: 14px;
+  min-height: 22px;
+}
+
+/* Chat Log Display */
+.chat-display {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 14px;
+  color: var(--text-main);
+  font-size: 13px;
+  height: 120px;
+  overflow-y: auto;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chat-msg {
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.chat-msg.user {
+  text-align: right;
+}
+
+.chat-msg .sender {
+  font-weight: 700;
+}
+
+.chat-msg.user .sender { color: #7dd3fc; }
+.chat-msg.sora .sender { color: #c4b5fd; }
+
+.chat-msg .time {
+  color: var(--text-sub);
+  font-size: 11px;
+  margin-left: 6px;
+}
+
+/* Floating Input Pill Container */
+.pill-container {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 26px;
+  display: flex;
+  align-items: center;
+  padding: 6px 10px;
+  gap: 8px;
+  height: 52px;
+  transition: border-color 0.3s;
+}
+
+.pill-container:focus-within {
+  border-color: rgba(56, 189, 248, 0.6);
+}
+
+.pill-container[data-mode="LISTENING"] { border-color: rgba(34, 211, 238, 0.6); }
+.pill-container[data-mode="THINKING"] { border-color: rgba(129, 140, 248, 0.6); }
+.pill-container[data-mode="SPEAKING"] { border-color: rgba(167, 139, 250, 0.6); }
+.pill-container[data-mode="ERROR"] { border-color: rgba(248, 113, 113, 0.6); }
+
+.btn-mic {
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-radius: 18px;
+  color: var(--cyan-idle);
+  font-size: 12px;
+  font-weight: 700;
+  height: 36px;
+  padding: 0 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-mic:hover {
+  background: rgba(56, 189, 248, 0.22);
+  color: #fff;
+}
+
+.btn-mic.active {
+  background: rgba(34, 211, 238, 0.25);
+  border-color: rgba(34, 211, 238, 0.7);
+  color: #fff;
+}
+
+.cmd-input {
+  background: transparent;
+  border: none;
+  color: #f1f5f9;
+  font-size: 14px;
+  flex: 1;
+  outline: none;
+}
+
+.btn-send {
+  background: linear-gradient(135deg, #0ea5e9, #8b5cf6);
+  border: none;
+  border-radius: 18px;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  height: 36px;
+  width: 42px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.btn-send:hover {
+  opacity: 0.9;
+}
+
+/* Demo Control Bar */
+.demo-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.demo-tag {
+  color: var(--text-sub);
+  font-size: 10px;
+  letter-spacing: 1px;
+  font-weight: 600;
+}
+
+.demo-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: var(--text-main);
+  font-size: 11px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.demo-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.demo-btn:focus-visible, .btn-mic:focus-visible, .btn-send:focus-visible, .win-btn:focus-visible {
+  outline: 2px solid var(--cyan-idle);
+  outline-offset: 2px;
+}
+
+/* Subsystem Health Dots */
+.hud-footer {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+
+.sys-dot {
+  color: #475569;
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+
+.sys-dot.on {
+  color: #22d3ee;
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Mobile Responsive Adjustments */
+@media (max-width: 600px) {
+  .hud-window {
+    padding: 14px;
+    border-radius: 14px;
+  }
+  .lbl-title { font-size: 14px; }
+  #coreCanvas { width: 160px; height: 160px; }
+  .demo-controls { flex-wrap: wrap; }
+}
