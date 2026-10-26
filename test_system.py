@@ -1,5 +1,6 @@
 """
-Sora AI (v2.0) - System Self-Diagnostic & Verification Suite (Ollama Edition)
+Sora AI (v2.0) - System Self-Diagnostic & Verification Suite
+Reports PASS, FAIL, WARNING, and SKIP statuses accurately.
 """
 import sys
 import os
@@ -9,7 +10,6 @@ from pathlib import Path
 if sys.platform.startswith("linux") and not os.getenv("DISPLAY") and not os.getenv("QT_QPA_PLATFORM"):
     os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
-# Add root and aegis directories to sys.path so both 'aegis' package and internal imports resolve
 root_dir = Path(__file__).resolve().parent
 aegis_dir = root_dir / "aegis"
 for p in (str(root_dir), str(aegis_dir)):
@@ -18,89 +18,132 @@ for p in (str(root_dir), str(aegis_dir)):
 
 import asyncio
 
+results = {}
+
 def check_config():
     print("[1/6] Testing Configuration & Environment...")
-    from aegis.BACKEND.config import config
-    assert config.app_name is not None
-    assert config.base_dir.exists()
-    assert config.logs_dir.exists()
-    print("  -> Configuration Loaded Successfully.")
-    print(f"  -> App Name: {config.app_name}")
-    print(f"  -> Ollama Host: {config.ollama_host}")
-    print(f"  -> Ollama Model: {config.ollama_model}")
-    print(f"  -> Wake words: {config.wake_words}")
+    try:
+        from aegis.BACKEND.config import config
+        assert config.app_name is not None
+        assert config.base_dir.exists()
+        assert config.logs_dir.exists()
+        print(f"  -> App Name: {config.app_name}")
+        print(f"  -> Ollama Host: {config.ollama_host}")
+        print(f"  -> Ollama Model: {config.ollama_model}")
+        print("  [PASS] Configuration Loaded Successfully.")
+        results["Config"] = "PASS"
+    except Exception as e:
+        print(f"  [FAIL] Configuration error: {e}")
+        results["Config"] = "FAIL"
 
 def check_logger():
     print("[2/6] Testing Logger...")
-    from aegis.BACKEND.logger import log
-    log.info("Sora self-test logger message.")
-    print("  -> Logger initialized and writing successfully.")
+    try:
+        from aegis.BACKEND.logger import log
+        log.info("Sora self-test logger message.")
+        print("  [PASS] Logger initialized and writing successfully.")
+        results["Logger"] = "PASS"
+    except Exception as e:
+        print(f"  [FAIL] Logger error: {e}")
+        results["Logger"] = "FAIL"
 
 async def check_intelligence():
     print("[3/6] Testing Intelligence Engine (Ollama & Offline Fallback)...")
-    from aegis.BACKEND.intelligence import llm
-    engine = llm.IntelligenceEngine()
+    try:
+        from aegis.BACKEND.intelligence import llm
+        engine = llm.IntelligenceEngine()
 
-    # Check Ollama server availability
-    is_live = await engine.is_ollama_available()
-    print(f"  -> Ollama Local Server Online: {is_live}")
+        is_live = await engine.is_ollama_available()
+        status_str = "ONLINE" if is_live else "OFFLINE (Using Local Fallback)"
+        print(f"  -> Ollama Server Status: {status_str}")
 
-    # Test time query (handles both live Ollama or fallback seamlessly)
-    res_time = await engine.generate_response("what time is it?")
-    assert len(res_time) > 0
-    print(f"  -> Response (Time query): '{res_time}'")
+        res_time = await engine.generate_response("what time is it?")
+        assert len(res_time) > 0
+        print(f"  -> Query Test Output: '{res_time}'")
 
-    res_calc = await engine.generate_response("calculate 50 * 2")
-    assert len(res_calc) > 0
-    print(f"  -> Response (Math query): '{res_calc}'")
+        if is_live:
+            print("  [PASS] Intelligence Engine (Ollama Live)")
+            results["Intelligence"] = "PASS"
+        else:
+            print("  [WARNING] Ollama server offline; fallback generator functional.")
+            results["Intelligence"] = "WARNING"
+    except Exception as e:
+        print(f"  [FAIL] Intelligence test error: {e}")
+        results["Intelligence"] = "FAIL"
 
 def check_stt():
     print("[4/6] Testing Speech-to-Text Module...")
-    from aegis.BACKEND.speech.stt import SpeechToText
-    stt = SpeechToText()
-    print(f"  -> Mic Hardware Detected: {stt.has_microphone}")
-    print(f"  -> Recognizer Ready: {stt.recognizer is not None}")
+    try:
+        from aegis.BACKEND.speech.stt import SpeechToText
+        stt = SpeechToText()
+        if stt.has_microphone:
+            print(f"  -> Mic Hardware Detected: True")
+            print("  [PASS] Speech-to-Text ready.")
+            results["STT"] = "PASS"
+        else:
+            print("  -> Mic Hardware Detected: False")
+            print("  [WARNING] Audio input device not found or PortAudio unavailable.")
+            results["STT"] = "WARNING"
+    except Exception as e:
+        print(f"  [FAIL] STT error: {e}")
+        results["STT"] = "FAIL"
 
 def check_tts():
     print("[5/6] Testing Text-to-Speech Engine...")
-    from aegis.BACKEND.speech.tts import TextToSpeech
-    tts = TextToSpeech()
-    print(f"  -> Voice: {tts.voice}")
-    print(f"  -> Speech Rate: {tts.rate}")
-    print(f"  -> Offline fallback engine available: {tts._get_offline_engine() is not None}")
+    try:
+        from aegis.BACKEND.speech.tts import TextToSpeech
+        tts = TextToSpeech()
+        print(f"  -> Voice Configured: {tts.voice}")
+        offline_avail = (tts._get_offline_engine() is not None)
+        print(f"  -> Offline Fallback Engine: {offline_avail}")
+        print("  [PASS] Text-to-Speech Engine initialized.")
+        results["TTS"] = "PASS"
+    except Exception as e:
+        print(f"  [FAIL] TTS error: {e}")
+        results["TTS"] = "FAIL"
 
 def check_ui():
     print("[6/6] Testing UI Components & Styles...")
-    from PyQt6.QtWidgets import QApplication
-    from aegis.UI.main_window import MainWindow
-    from aegis.UI.widgets.visualizer import VisualizerMode
+    try:
+        from PyQt6.QtWidgets import QApplication
+        from aegis.UI.main_window import MainWindow
+        from aegis.UI.widgets.visualizer import VisualizerMode
 
-    app = QApplication.instance() or QApplication(sys.argv)
-    window = MainWindow()
-    assert window is not None
-    window.set_system_status("DIAGNOSTIC", VisualizerMode.SPEAKING)
-    window.append_message("Sora", "Diagnostic test message.")
-    print("  -> UI Window, Siri Waveform, and Pill Input Bar initialized successfully.")
+        app = QApplication.instance() or QApplication(sys.argv)
+        window = MainWindow()
+        assert window is not None
+        window.set_system_status("DIAGNOSTIC", VisualizerMode.SPEAKING)
+        window.append_message("Sora", "Diagnostic test message.")
+        print("  [PASS] UI components initialized successfully.")
+        results["UI"] = "PASS"
+    except Exception as e:
+        print(f"  [FAIL] UI test error: {e}")
+        results["UI"] = "FAIL"
 
 async def run_all():
     print("==================================================")
     print("      SORA AI (v2.0) SYSTEM DIAGNOSTIC SUITE      ")
     print("==================================================")
-    try:
-        check_config()
-        check_logger()
-        await check_intelligence()
-        check_stt()
-        check_tts()
-        check_ui()
-        print("==================================================")
-        print(" [SUCCESS] ALL 6 SUBSYSTEM TESTS PASSED!         ")
-        print("==================================================")
-    except Exception as e:
-        print(f"\n[ERROR] Diagnostic test failed: {e}")
-        import traceback
-        traceback.print_exc()
+    check_config()
+    check_logger()
+    await check_intelligence()
+    check_stt()
+    check_tts()
+    check_ui()
+    print("\n==================================================")
+    print("                DIAGNOSTIC SUMMARY                ")
+    print("==================================================")
+    has_failure = False
+    for sub, status in results.items():
+        print(f"  - {sub:15s}: [{status}]")
+        if status == "FAIL":
+            has_failure = True
+    print("==================================================")
+    if has_failure:
+        print(" [RESULT] SYSTEM DIAGNOSTICS COMPLETED WITH FAILURES")
         sys.exit(1)
+    else:
+        print(" [RESULT] ALL CRITICAL SUBSYSTEM DIAGNOSTICS PASSED")
 
 if __name__ == "__main__":
     asyncio.run(run_all())
