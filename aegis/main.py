@@ -78,26 +78,41 @@ async def main_controller(window: MainWindow):
                 detected = await stt.listen_for_wake_word()
                 if detected and mic_enabled:
                     await trigger_listening()
+                else:
+                    await asyncio.sleep(0.1)
             except asyncio.CancelledError:
-                raise
+                break
             except Exception as e:
                 log.error(f"Error in voice listener loop: {e}")
-                await asyncio.sleep(1.0)
+                await asyncio.sleep(0.5)
 
     async def stop_all_operations():
         nonlocal mic_enabled, listener_task, active_response_task
         mic_enabled = False
+        stt.stop()
         if listener_task and not listener_task.done():
             listener_task.cancel()
-        stt.stop()
+            try:
+                await listener_task
+            except (asyncio.CancelledError, Exception):
+                pass
+            listener_task = None
+
         if active_response_task and not active_response_task.done():
             active_response_task.cancel()
+            try:
+                await active_response_task
+            except (asyncio.CancelledError, Exception):
+                pass
+            active_response_task = None
+
         while not command_queue.empty():
             try:
                 command_queue.get_nowait()
                 command_queue.task_done()
-            except asyncio.QueueEmpty:
+            except Exception:
                 break
+
         await tts.stop()
         window.set_system_status("Stopped", VisualizerMode.IDLE)
 
@@ -108,8 +123,11 @@ async def main_controller(window: MainWindow):
             return
         mic_enabled = True
         window.set_system_status("Listening...", VisualizerMode.LISTENING)
-        asyncio.create_task(trigger_listening())
+        stt._stop_event.clear()
+        if listener_task and not listener_task.done():
+            listener_task.cancel()
         listener_task = asyncio.create_task(voice_listener_task())
+        asyncio.create_task(trigger_listening())
 
     window.voice_trigger_requested.connect(on_manual_voice_trigger)
 
@@ -209,7 +227,8 @@ async def main_controller(window: MainWindow):
             try:
                 await active_response_task
             except asyncio.CancelledError:
-                log.info("Active Jarvis response cancelled by microphone stop.")
+                log.info("Active Jarvis response cancelled.")
+                await tts.stop()
             finally:
                 active_response_task = None
                 command_queue.task_done()

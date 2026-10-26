@@ -148,20 +148,19 @@ class IntelligenceEngine:
                                     clean_token = token.translate(self._clean_trans)
                                     full_reply += clean_token
                                     current_chunk += clean_token
-                                    if " " in clean_token or "\n" in clean_token:
-                                        word_count += clean_token.count(" ") + clean_token.count("\n")
+                                    words = len(current_chunk.split())
+                                    stripped_chunk = current_chunk.rstrip()
 
                                     # Fast yielding strategy for minimum TTFA (Time-To-First-Audio):
-                                    has_sentence_end = any(current_chunk.endswith(p) for p in (". ", "? ", "! ", ".\n", "?\n", "!\n", ".", "?", "!"))
-                                    has_clause_break = is_first_chunk and word_count >= 3 and any(current_chunk.endswith(p) for p in (", ", "; ", ": ", ",", ";"))
+                                    has_sentence_end = any(stripped_chunk.endswith(p) for p in (".", "?", "!"))
+                                    has_clause_break = is_first_chunk and words >= 3 and any(stripped_chunk.endswith(p) for p in (",", ";", ":"))
 
-                                    if (has_sentence_end and word_count >= 1) or has_clause_break or word_count >= 12:
+                                    if (has_sentence_end and words >= 1) or has_clause_break or words >= 12:
                                         piece = current_chunk.strip()
                                         if piece:
                                             has_yielded = True
                                             yield piece
                                             current_chunk = ""
-                                            word_count = 0
                                             is_first_chunk = False
                             except json.JSONDecodeError:
                                 pass
