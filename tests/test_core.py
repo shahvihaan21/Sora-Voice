@@ -2,6 +2,7 @@ import pytest
 import asyncio
 import sys
 import os
+from unittest.mock import AsyncMock, patch
 
 if sys.platform.startswith("linux") and not os.getenv("DISPLAY") and not os.getenv("QT_QPA_PLATFORM"):
     os.environ["QT_QPA_PLATFORM"] = "offscreen"
@@ -17,11 +18,30 @@ from PyQt6.QtWidgets import QApplication
 
 
 def test_config_defaults_and_env_override(monkeypatch):
-    monkeypatch.setenv("OLLAMA_MODEL", "llama3.2:3b")
+    monkeypatch.setenv("OLLAMA_MODEL", "qwen3:1.7b")
     monkeypatch.setenv("OLLAMA_HOST", "http://127.0.0.1:11434")
     cfg = AppConfig()
-    assert cfg.ollama_model == "llama3.2:3b"
+    assert cfg.ollama_model == "qwen3:1.7b"
     assert cfg.ollama_host == "http://127.0.0.1:11434"
+
+
+@pytest.mark.asyncio
+async def test_llm_model_discovery_and_switching():
+    engine = IntelligenceEngine()
+    assert engine.model_id in ("qwen3:1.7b", "jarvis-ft:latest")
+
+    # Test dynamic model switching
+    engine.set_model("jarvis-ft:latest")
+    assert engine.model_id == "jarvis-ft:latest"
+
+    # Test mock model discovery and validation
+    mock_models = ["qwen3:1.7b", "jarvis-ft:latest", "gemma4-local:latest", "qwen2.5vl:7b"]
+    with patch.object(engine, "get_available_models", new_callable=AsyncMock) as mock_get:
+        mock_get.return_value = mock_models
+        is_valid = await engine.validate_model("qwen3:1.7b")
+        assert is_valid is True
+        is_invalid = await engine.validate_model("nonexistent-model")
+        assert is_invalid is False
 
 
 @pytest.mark.asyncio
@@ -66,6 +86,14 @@ async def test_tts_stop_and_interruption():
     assert tts._sentence_queue.empty()
 
 
+@pytest.mark.asyncio
+async def test_tts_mute_toggle():
+    tts = TextToSpeech()
+    tts.is_muted = True
+    await tts.speak("This is a muted sentence.")
+    assert tts._sentence_queue.empty()
+
+
 def test_ai_core_widget():
     app = QApplication.instance() or QApplication(sys.argv)
     core = AICore()
@@ -90,6 +118,35 @@ def test_main_window_ui_and_status_transitions():
 
     window.append_message("User", "Hello Sora")
     assert "Hello Sora" in window.chat_display.toPlainText()
+
+
+def test_main_window_controls_and_model_selector():
+    app = QApplication.instance() or QApplication(sys.argv)
+    window = MainWindow()
+
+    # Model selector and dynamic model list updates
+    models = ["qwen3:1.7b", "jarvis-ft:latest", "gemma4-local:latest", "qwen2.5vl:7b"]
+    window.set_available_models(models, "qwen3:1.7b")
+    assert window.lbl_active_model.text() == "qwen3:1.7b"
+    assert window.combo_model.count() == 4
+
+    # Ollama status update
+    window.set_ollama_status(True)
+    assert "ONLINE" in window.lbl_ollama.text()
+    window.set_ollama_status(False)
+    assert "OFFLINE" in window.lbl_ollama.text()
+
+    # Mute toggle button
+    assert window.is_muted is False
+    window.btn_mute.click()
+    assert window.is_muted is True
+    assert window.btn_mute.text() == "UNMUTE"
+
+    # Clear chat
+    window.append_message("User", "Test to clear")
+    assert "Test to clear" in window.chat_display.toPlainText()
+    window.btn_clear.click()
+    assert window.chat_display.toPlainText() == ""
 
 
 def test_main_window_health_indicator():

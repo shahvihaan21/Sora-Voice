@@ -41,14 +41,24 @@ class AudioVisualizer(QWidget):
         if mode == self.mode:
             return
         self.mode = mode
-        interval = {VisualizerMode.IDLE: 90, VisualizerMode.ERROR: 250,
-                    VisualizerMode.CONFIRMATION_REQUIRED: 120,
-                    VisualizerMode.THINKING: 60, VisualizerMode.EXECUTING: 50,
-                    VisualizerMode.LISTENING: 36, VisualizerMode.SPEAKING: 36}.get(mode, 60)
+        # Throttle visualizer: ~30 FPS (33ms) when active, ~12 FPS (85ms) when idle
+        interval = {VisualizerMode.IDLE: 85, VisualizerMode.ERROR: 150,
+                    VisualizerMode.CONFIRMATION_REQUIRED: 85,
+                    VisualizerMode.THINKING: 33, VisualizerMode.EXECUTING: 33,
+                    VisualizerMode.LISTENING: 33, VisualizerMode.SPEAKING: 33}.get(mode, 33)
         if self.timer.interval() != interval:
             self.timer.setInterval(interval)
         if self.isVisible():
             self.update()
+
+    def hideEvent(self, event):
+        self.timer.stop()
+        super().hideEvent(event)
+
+    def showEvent(self, event):
+        if not self.timer.isActive():
+            self.timer.start()
+        super().showEvent(event)
 
     def set_level(self, v: float):
         try:

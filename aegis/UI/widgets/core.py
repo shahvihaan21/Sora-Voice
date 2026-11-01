@@ -50,14 +50,24 @@ class AICore(QWidget):
             return
         self.mode = mode
         # adaptive frame rate: idle/error slow, thinking medium, voice fast
-        interval = {"IDLE": 90, "ERROR": 200, "CONFIRMATION_REQUIRED": 90,
-                    "THINKING": 60, "EXECUTING": 50,
-                    "LISTENING": 36, "SPEAKING": 36}.get(mode, 50)
+        # Throttle animation: ~30 FPS (33ms) when active, ~12 FPS (85ms) when idle
+        interval = {"IDLE": 85, "ERROR": 150, "CONFIRMATION_REQUIRED": 85,
+                    "THINKING": 33, "EXECUTING": 33,
+                    "LISTENING": 33, "SPEAKING": 33}.get(mode, 33)
         if self.timer.interval() != interval:
             self.timer.setInterval(interval)
         self._cached_size = None  # force geometry recache
         if self.isVisible():
             self.update()
+
+    def hideEvent(self, event):
+        self.timer.stop()
+        super().hideEvent(event)
+
+    def showEvent(self, event):
+        if not self.timer.isActive():
+            self.timer.start()
+        super().showEvent(event)
     def _pal(self):
         m = {"IDLE": ((56,189,248),(129,140,248)),
              "LISTENING": ((34,211,238),(56,189,248)),

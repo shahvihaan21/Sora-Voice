@@ -44,7 +44,8 @@ async def main_controller(window: MainWindow):
     listener_task = None
     active_response_task = None
 
-    # Initial greeting
+    # Initial greeting & active model
+    window.set_active_model(llm.model_id)
     window.set_system_status("Online", VisualizerMode.IDLE)
     welcome_msg = "jarvis voice online- how may i assist you"
     window.append_message("Jarvis", welcome_msg)
@@ -150,9 +151,41 @@ async def main_controller(window: MainWindow):
     except Exception:
         pass
 
+    def _on_model_changed(model_name: str):
+        llm.set_model(model_name)
+        log.info(f"Model switched to {model_name}")
+
+    try:
+        window.model_changed.connect(_on_model_changed)
+    except Exception:
+        pass
+
+    def _on_mute_toggled(muted: bool):
+        tts.is_muted = muted
+        if muted:
+            asyncio.create_task(tts.stop())
+
+    try:
+        window.mute_toggled.connect(_on_mute_toggled)
+    except Exception:
+        pass
+
+    def _on_clear_requested():
+        llm.conversation_history.clear()
+
+    try:
+        window.clear_requested.connect(_on_clear_requested)
+    except Exception:
+        pass
+
+    try:
+        window.stop_speech_requested.connect(_on_cancel)
+    except Exception:
+        pass
+
     async def _health():
         import httpx as _hx
-        _hc = _hx.AsyncClient(timeout=2.0)
+        _hc = _hx.AsyncClient(timeout=2.5)
         try:
             while True:
                 try:
@@ -161,9 +194,15 @@ async def main_controller(window: MainWindow):
                         host = getattr(config, "ollama_host", "http://localhost:11434")
                         r = await _hc.get(host.rstrip("/") + "/api/tags")
                         ai = (r.status_code == 200)
+                        if ai:
+                            data = r.json()
+                            models = [m.get("name") for m in data.get("models", []) if m.get("name")]
+                            if models:
+                                window.set_available_models(models, llm.model_id)
                     except Exception:
                         ai = False
                     window.set_health(mic=mic, ai=ai, voice=True, local=True)
+                    window.set_ollama_status(ai)
                 except Exception:
                     pass
                 await asyncio.sleep(15.0)

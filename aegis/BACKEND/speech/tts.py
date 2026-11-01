@@ -16,6 +16,7 @@ class TextToSpeech:
         self.pitch = getattr(config, "tts_pitch", "") or self.voice_pack.pitch
         self.volume = getattr(config, "tts_volume", "") or self.voice_pack.volume
         self.is_speaking = False
+        self.is_muted = False
         self._lock = asyncio.Lock()
         self.on_start_callback: Optional[Callable[[], None]] = None
         self.on_end_callback: Optional[Callable[[], None]] = None
@@ -199,7 +200,7 @@ class TextToSpeech:
 
     async def speak_stream(self, text: str):
         """Enqueue one clause/sentence for immediate playback (non-blocking)."""
-        if not text or not text.strip():
+        if self.is_muted or not text or not text.strip():
             return
         await self._ensure_player()
         await self._sentence_queue.put(text.strip())
@@ -211,7 +212,7 @@ class TextToSpeech:
             pass
 
     async def speak(self, text: str):
-        if not text or not text.strip():
+        if self.is_muted or not text or not text.strip():
             return
         await self._ensure_player()
         # keep old API: full-text speak goes through the same player
