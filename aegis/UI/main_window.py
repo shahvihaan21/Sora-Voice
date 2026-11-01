@@ -25,6 +25,7 @@ class MainWindow(QMainWindow):
     model_changed = pyqtSignal(str)
     mute_toggled = pyqtSignal(bool)
     clear_requested = pyqtSignal()
+    stop_speech_requested = pyqtSignal()
 
     def __init__(self):
         super().__init__()
@@ -364,6 +365,7 @@ class MainWindow(QMainWindow):
         self.voice_trigger_requested.emit()
 
     def on_stop_speech_clicked(self):
+        self.stop_speech_requested.emit()
         self.cancel_requested.emit()
 
     def on_send_clicked(self):

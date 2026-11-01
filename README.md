@@ -75,6 +75,10 @@ python run.py
 ## Switching Models
 
 - **Dynamic Model Selection**: Select any installed model (`qwen3:1.7b`, `jarvis-ft:latest`, `gemma4-local:latest`, `qwen2.5vl:7b`) from the dropdown menu in the settings bar at runtime without restarting the application. Sora will always use your explicitly selected model and will never silently substitute a different model.
+## Switching Models and Vision Routing
+
+- **Dynamic Model Selection**: Select any installed model from the dropdown menu in the settings bar at runtime without restarting the application.
+- **Vision Query Routing**: When screenshot or image understanding is requested (e.g. "look at my screen", "screenshot"), Sora automatically routes inference to `qwen2.5vl:7b`. Normal voice conversations use the selected general model (default: `qwen3:1.7b`).
 
 ---
 
