@@ -42,6 +42,7 @@ async def main_controller(window: MainWindow):
     voice_trigger_lock = asyncio.Lock()
     mic_enabled = False
     listener_task = None
+    recording_task = None
     active_response_task = None
 
     # Initial greeting & active model
@@ -55,6 +56,7 @@ async def main_controller(window: MainWindow):
 
     async def trigger_listening():
         """Capture one command while the microphone toggle is enabled."""
+        nonlocal recording_task
         if voice_trigger_lock.locked():
             return
         async with voice_trigger_lock:
@@ -65,20 +67,30 @@ async def main_controller(window: MainWindow):
                 window.set_system_status("Offline", VisualizerMode.IDLE)
                 return
             window.set_system_status("Listening...", VisualizerMode.LISTENING)
-            cmd = await stt.listen_for_command()
-            if cmd:
-                log.info(f"Spoken command recognized: {cmd}")
-                await command_queue.put(cmd)
-            else:
-                window.set_system_status("Online", VisualizerMode.IDLE)
+            try:
+                cmd = await stt.listen_for_command()
+                if cmd:
+                    log.info(f"Spoken command recognized: {cmd}")
+                    await command_queue.put(cmd)
+                else:
+                    if mic_enabled:
+                        window.set_system_status("Online", VisualizerMode.IDLE)
+            except asyncio.CancelledError:
+                log.debug("Manual recording task cancelled.")
+                raise
+            finally:
+                recording_task = None
 
     async def voice_listener_task():
         """Keep the mic active after the first press and accept wake words."""
+        nonlocal recording_task
         while mic_enabled:
             try:
                 detected = await stt.listen_for_wake_word()
                 if detected and mic_enabled:
-                    await trigger_listening()
+                    if recording_task is None or recording_task.done():
+                        recording_task = asyncio.create_task(trigger_listening())
+                        await recording_task
                 else:
                     await asyncio.sleep(0.1)
             except asyncio.CancelledError:
@@ -87,48 +99,67 @@ async def main_controller(window: MainWindow):
                 log.error(f"Error in voice listener loop: {e}")
                 await asyncio.sleep(0.5)
 
+    is_stopping = False
+
     async def stop_all_operations():
-        nonlocal mic_enabled, listener_task, active_response_task
-        mic_enabled = False
-        stt.stop()
-        if listener_task and not listener_task.done():
-            listener_task.cancel()
-            try:
-                await listener_task
-            except (asyncio.CancelledError, Exception):
-                pass
-            listener_task = None
+        nonlocal mic_enabled, listener_task, recording_task, active_response_task, is_stopping
+        if is_stopping:
+            return
+        is_stopping = True
+        try:
+            mic_enabled = False
+            stt.stop()
 
-        if active_response_task and not active_response_task.done():
-            active_response_task.cancel()
-            try:
-                await active_response_task
-            except (asyncio.CancelledError, Exception):
-                pass
-            active_response_task = None
+            if recording_task and not recording_task.done():
+                recording_task.cancel()
+                try:
+                    await recording_task
+                except (asyncio.CancelledError, Exception):
+                    pass
+                recording_task = None
 
-        while not command_queue.empty():
-            try:
-                command_queue.get_nowait()
-                command_queue.task_done()
-            except Exception:
-                break
+            if listener_task and not listener_task.done():
+                listener_task.cancel()
+                try:
+                    await listener_task
+                except (asyncio.CancelledError, Exception):
+                    pass
+                listener_task = None
 
-        await tts.stop()
-        window.set_system_status("Stopped", VisualizerMode.IDLE)
+            if active_response_task and not active_response_task.done():
+                active_response_task.cancel()
+                try:
+                    await active_response_task
+                except (asyncio.CancelledError, Exception):
+                    pass
+                active_response_task = None
+
+            while not command_queue.empty():
+                try:
+                    command_queue.get_nowait()
+                    command_queue.task_done()
+                except Exception:
+                    break
+
+            await tts.stop()
+            window.set_system_status("Online", VisualizerMode.IDLE)
+        finally:
+            is_stopping = False
 
     def on_manual_voice_trigger():
-        nonlocal mic_enabled, listener_task
+        nonlocal mic_enabled, listener_task, recording_task
         if mic_enabled:
             asyncio.create_task(stop_all_operations())
             return
         mic_enabled = True
         window.set_system_status("Listening...", VisualizerMode.LISTENING)
-        stt._stop_event.clear()
+        stt.reset_cancellation()
         if listener_task and not listener_task.done():
             listener_task.cancel()
+        if recording_task and not recording_task.done():
+            recording_task.cancel()
         listener_task = asyncio.create_task(voice_listener_task())
-        asyncio.create_task(trigger_listening())
+        recording_task = asyncio.create_task(trigger_listening())
 
     window.voice_trigger_requested.connect(on_manual_voice_trigger)
 
@@ -175,11 +206,6 @@ async def main_controller(window: MainWindow):
 
     try:
         window.clear_requested.connect(_on_clear_requested)
-    except Exception:
-        pass
-
-    try:
-        window.stop_speech_requested.connect(_on_cancel)
     except Exception:
         pass
 
