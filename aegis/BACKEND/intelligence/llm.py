@@ -23,27 +23,38 @@ class IntelligenceEngine:
 
         log.info(f"Initialized Jarvis AI Engine (Ollama: {self.model_id} @ {self.host})")
 
-    def _client_or_new(self, timeout: float) -> httpx.AsyncClient:
-        # persistent client avoids TLS/TCP reconnect per request
+    def _get_client(self) -> httpx.AsyncClient:
+        # Persistent client with appropriate timeouts for local models
+        timeout_val = getattr(config, "ollama_timeout", 30.0)
         try:
             if self._client is None or self._client.is_closed:
-                self._client = httpx.AsyncClient(timeout=timeout)
+                timeout_config = httpx.Timeout(timeout_val, connect=5.0, read=timeout_val, write=10.0)
+                self._client = httpx.AsyncClient(timeout=timeout_config)
         except Exception:
-            return httpx.AsyncClient(timeout=timeout)
+            return httpx.AsyncClient(timeout=timeout_val)
         return self._client
+
+    async def close(self):
+        """Cleanly close persistent HTTP client on shutdown."""
+        if self._client and not self._client.is_closed:
+            try:
+                await self._client.aclose()
+            except Exception:
+                pass
+            self._client = None
 
     async def prewarm(self):
         try:
-            c = self._client_or_new(2.0)
-            await c.get(f"{self.host}/api/tags")
+            client = self._get_client()
+            await client.get(f"{self.host}/api/tags", timeout=2.5)
         except Exception:
             pass
 
     async def is_ollama_available(self) -> bool:
         """Check if local Ollama server is running."""
         try:
-            c = self._client_or_new(1.5)
-            res = await c.get(f"{self.host}/api/tags")
+            client = self._get_client()
+            res = await client.get(f"{self.host}/api/tags", timeout=2.0)
             return res.status_code == 200
         except Exception:
             return False
@@ -51,8 +62,8 @@ class IntelligenceEngine:
     async def get_available_models(self) -> List[str]:
         """Discover installed models dynamically through the Ollama API."""
         try:
-            c = self._client_or_new(2.5)
-            res = await c.get(f"{self.host}/api/tags")
+            client = self._get_client()
+            res = await client.get(f"{self.host}/api/tags", timeout=3.0)
             if res.status_code == 200:
                 data = res.json()
                 models = [m.get("name") for m in data.get("models", []) if m.get("name")]
@@ -126,9 +137,7 @@ class IntelligenceEngine:
         if not user_input or not user_input.strip():
             return
 
-        # Route to vision model only when user explicitly asks for image/screenshot understanding
-        is_vision_query = any(k in user_input.lower() for k in ["screenshot", "look at my screen", "read screen", "describe screen", "image analysis"])
-        target_model = getattr(config, "vision_model", "qwen2.5vl:7b") if is_vision_query else self.model_id
+        target_model = self.model_id
 
         log.info(f"Generating streaming Jarvis ({target_model}) response for: {user_input}")
 
@@ -147,78 +156,78 @@ class IntelligenceEngine:
         current_chunk = ""
         is_first_chunk = True
         has_yielded = False
-        timeout = getattr(config, "ollama_timeout", 10.0)
+        timeout = getattr(config, "ollama_timeout", 30.0)
 
         try:
-            client = self._client_or_new(timeout)
-            try:
-                async with client.stream(
-                    "POST",
-                    f"{self.host}/api/chat",
-                    json={
-                        "model": target_model,
-                        "messages": messages,
-                        "stream": True,
-                        "options": {
-                            "temperature": 0.4,
-                            "top_p": 0.9,
-                            "num_predict": 120,
-                        }
+            client = self._get_client()
+            async with client.stream(
+                "POST",
+                f"{self.host}/api/chat",
+                json={
+                    "model": target_model,
+                    "messages": messages,
+                    "stream": True,
+                    "options": {
+                        "temperature": 0.4,
+                        "top_p": 0.9,
+                        "num_predict": 120,
                     }
-                ) as response:
-                    if response.status_code == 200:
-                        import json
-                        async for line in response.aiter_lines():
-                            if not line:
-                                continue
-                            try:
-                                data = json.loads(line)
-                                token = data.get("message", {}).get("content", "")
-                                if token:
-                                    clean_token = token.translate(self._clean_trans)
-                                    full_reply += clean_token
-                                    current_chunk += clean_token
-                                    words = len(current_chunk.split())
-                                    stripped_chunk = current_chunk.rstrip()
+                },
+                timeout=timeout
+            ) as response:
+                if response.status_code == 200:
+                    import json
+                    async for line in response.aiter_lines():
+                        if not line:
+                            continue
+                        try:
+                            data = json.loads(line)
+                            token = data.get("message", {}).get("content", "")
+                            if token:
+                                clean_token = token.translate(self._clean_trans)
+                                full_reply += clean_token
+                                current_chunk += clean_token
+                                words = len(current_chunk.split())
+                                stripped_chunk = current_chunk.rstrip()
 
-                                    # Fast yielding strategy for minimum TTFA (Time-To-First-Audio):
-                                    has_sentence_end = any(stripped_chunk.endswith(p) for p in (".", "?", "!"))
-                                    has_clause_break = is_first_chunk and words >= 3 and any(stripped_chunk.endswith(p) for p in (",", ";", ":"))
+                                # Fast yielding strategy for minimum TTFA (Time-To-First-Audio):
+                                has_sentence_end = any(stripped_chunk.endswith(p) for p in (".", "?", "!"))
+                                has_clause_break = is_first_chunk and words >= 3 and any(stripped_chunk.endswith(p) for p in (",", ";", ":"))
 
-                                    if (has_sentence_end and words >= 1) or has_clause_break or words >= 12:
-                                        piece = current_chunk.strip()
-                                        if piece:
-                                            has_yielded = True
-                                            yield piece
-                                            current_chunk = ""
-                                            is_first_chunk = False
-                            except json.JSONDecodeError:
-                                pass
+                                if (has_sentence_end and words >= 1) or has_clause_break or words >= 12:
+                                    piece = current_chunk.strip()
+                                    if piece:
+                                        has_yielded = True
+                                        yield piece
+                                        current_chunk = ""
+                                        is_first_chunk = False
+                        except json.JSONDecodeError:
+                            pass
 
-                        if current_chunk.strip():
-                            has_yielded = True
-                            yield current_chunk.strip()
+                    if current_chunk.strip():
+                        has_yielded = True
+                        yield current_chunk.strip()
 
-                        if full_reply.strip():
-                            self._save_history(user_input, full_reply.strip())
-                            log.info(f"Jarvis response complete: {full_reply.strip()}")
-                        return
-                    elif response.status_code == 404:
-                        msg = f"Model '{self.model_id}' was not found in Ollama. Please run 'ollama pull {self.model_id}'."
-                        log.warning(msg)
-                        yield msg
-                        return
-                    else:
-                        log.warning(f"Ollama returned HTTP status {response.status_code}")
-            except Exception as _se:
-                try:
-                    self._client = None
-                except Exception:
-                    pass
-                raise _se
+                    if full_reply.strip():
+                        self._save_history(user_input, full_reply.strip())
+                        log.info(f"Jarvis response complete: {full_reply.strip()}")
+                    return
+                elif response.status_code == 404:
+                    msg = f"Model '{target_model}' was not found in Ollama. Please run 'ollama pull {target_model}'."
+                    log.warning(msg)
+                    yield msg
+                    return
+                else:
+                    log.warning(f"Ollama returned HTTP status {response.status_code}")
 
         except httpx.ConnectError:
             log.warning("Could not connect to Ollama server.")
+        except httpx.TimeoutException:
+            log.warning(f"Ollama inference timed out after {timeout}s.")
+            timeout_msg = f"Ollama inference timed out after {int(timeout)}s. Local model '{target_model}' took too long to respond."
+            self._save_history(user_input, timeout_msg)
+            yield timeout_msg
+            return
         except Exception as e:
             log.error(f"Error during Ollama inference: {e}")
 

@@ -53,6 +53,10 @@ class SpeechToText:
         """Request immediate release of an active recording stream."""
         self._stop_event.set()
 
+    def reset_cancellation(self):
+        """Reset the stop event at a clean session boundary."""
+        self._stop_event.clear()
+
     def prewarm(self):
         """Import heavy STT deps once at startup, off the critical path."""
         try:
@@ -135,14 +139,17 @@ class SpeechToText:
 
             return False
 
-        if self._command_lock.locked():
-            return False
-
         try:
-            detected = await loop.run_in_executor(None, _record_and_check)
-            if detected and not self._stop_event.is_set():
-                log.info("Jarvis wake word recognized!")
-                return True
+            async with self._command_lock:
+                if self._stop_event.is_set():
+                    return False
+                detected = await loop.run_in_executor(None, _record_and_check)
+                if detected and not self._stop_event.is_set():
+                    log.info("Jarvis wake word recognized!")
+                    return True
+        except asyncio.CancelledError:
+            self.stop()
+            raise
         except Exception as e:
             log.debug(f"Wake loop error: {e}")
 
@@ -225,6 +232,11 @@ class SpeechToText:
                 log.warning(f"Voice recognition error: {e}")
                 return ""
 
-        async with self._command_lock:
-            self._stop_event.clear()
-            return await loop.run_in_executor(None, _record_command_dynamic)
+        try:
+            async with self._command_lock:
+                if self._stop_event.is_set():
+                    return ""
+                return await loop.run_in_executor(None, _record_command_dynamic)
+        except asyncio.CancelledError:
+            self.stop()
+            raise
