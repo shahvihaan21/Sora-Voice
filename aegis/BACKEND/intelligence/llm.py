@@ -9,7 +9,7 @@ from BACKEND.config import config
 class IntelligenceEngine:
     def __init__(self):
         self.host = config.ollama_host.rstrip('/')
-        self.model_id = config.ollama_model or "jarvis-ft:latest"
+        self.model_id = config.ollama_model or "qwen3:1.7b"
         self.conversation_history: List[Dict[str, str]] = []
         self._client: httpx.AsyncClient | None = None
         self._clean_trans = str.maketrans("", "", "*_#`")
@@ -47,6 +47,33 @@ class IntelligenceEngine:
             return res.status_code == 200
         except Exception:
             return False
+
+    async def get_available_models(self) -> List[str]:
+        """Discover installed models dynamically through the Ollama API."""
+        try:
+            c = self._client_or_new(2.5)
+            res = await c.get(f"{self.host}/api/tags")
+            if res.status_code == 200:
+                data = res.json()
+                models = [m.get("name") for m in data.get("models", []) if m.get("name")]
+                return models
+        except Exception as e:
+            log.debug(f"Could not discover Ollama models: {e}")
+        return []
+
+    async def validate_model(self, model_name: str) -> bool:
+        """Validate if the selected model is present in Ollama."""
+        available = await self.get_available_models()
+        if not available:
+            return False
+        # Allow exact match or match without tag if applicable
+        return model_name in available or any(m.startswith(f"{model_name}:") for m in available)
+
+    def set_model(self, model_name: str):
+        """Switch active Ollama model without restart."""
+        self.model_id = model_name
+        config.ollama_model = model_name
+        log.info(f"Switched active Ollama model to: {self.model_id}")
 
     def _offline_fallback_response(self, user_input: str) -> str:
         """
@@ -99,7 +126,11 @@ class IntelligenceEngine:
         if not user_input or not user_input.strip():
             return
 
-        log.info(f"Generating streaming Jarvis ({self.model_id}) response for: {user_input}")
+        # Route to vision model only when user explicitly asks for image/screenshot understanding
+        is_vision_query = any(k in user_input.lower() for k in ["screenshot", "look at my screen", "read screen", "describe screen", "image analysis"])
+        target_model = getattr(config, "vision_model", "qwen2.5vl:7b") if is_vision_query else self.model_id
+
+        log.info(f"Generating streaming Jarvis ({target_model}) response for: {user_input}")
 
         now = datetime.datetime.now()
         time_str = now.strftime("%I:%M %p, %A, %B %d, %Y")
@@ -116,7 +147,6 @@ class IntelligenceEngine:
         current_chunk = ""
         is_first_chunk = True
         has_yielded = False
-        word_count = 0
         timeout = getattr(config, "ollama_timeout", 10.0)
 
         try:
@@ -126,7 +156,7 @@ class IntelligenceEngine:
                     "POST",
                     f"{self.host}/api/chat",
                     json={
-                        "model": self.model_id,
+                        "model": target_model,
                         "messages": messages,
                         "stream": True,
                         "options": {

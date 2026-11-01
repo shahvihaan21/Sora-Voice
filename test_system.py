@@ -57,6 +57,12 @@ async def check_intelligence():
         status_str = "ONLINE" if is_live else "OFFLINE (Using Local Fallback)"
         print(f"  -> Ollama Server Status: {status_str}")
 
+        models = await engine.get_available_models()
+        if models:
+            print(f"  -> Discovered Ollama Models: {models}")
+        else:
+            print(f"  -> Active Model Configured: {engine.model_id}")
+
         res_time = await engine.generate_response("what time is it?")
         assert len(res_time) > 0
         print(f"  -> Query Test Output: '{res_time}'")
