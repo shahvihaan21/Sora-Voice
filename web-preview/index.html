@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sora Voice — Interactive Web Preview</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="hud-window" id="hudWindow" role="region" aria-label="Sora Assistant Interface">
+    <!-- Header Controls & Brand -->
+    <header class="hud-header">
+      <div class="brand">
+        <h1 class="lbl-title">SORA</h1>
+        <span class="lbl-sub">LOCAL AI &bull; BROWSER PREVIEW</span>
+      </div>
+      <div class="status-container">
+        <span class="status-badge" id="statusBadge" data-mode="IDLE">ONLINE</span>
+        <span class="action-hint" id="actionHint">Ready</span>
+      </div>
+      <div class="window-controls">
+        <button class="win-btn" aria-label="Minimize" title="Minimize">-</button>
+        <button class="win-btn" aria-label="Maximize" title="Maximize">+</button>
+        <button class="win-btn btn-close" aria-label="Close" title="Close">&times;</button>
+      </div>
+    </header>
+
+    <!-- Central AI Core Animation Canvas -->
+    <div class="core-wrapper">
+      <canvas id="coreCanvas" width="240" height="240" aria-label="Sora AI Core visualizer"></canvas>
+    </div>
+
+    <!-- State Indicator Text -->
+    <div class="state-label" id="stateLabel">READY</div>
+
+    <!-- Multi-Layer Siri Waveform Canvas -->
+    <div class="waveform-wrapper">
+      <canvas id="waveformCanvas" width="560" height="64" aria-label="Audio harmonic visualizer"></canvas>
+    </div>
+
+    <!-- Response Display -->
+    <div class="response-label" id="responseLabel">How can I help?</div>
+
+    <!-- Chat Transcript Log -->
+    <div class="chat-display" id="chatDisplay" role="log" aria-live="polite"></div>
+
+    <!-- Floating Pill Input Capsule -->
+    <div class="pill-container" id="pillContainer" data-mode="IDLE">
+      <button class="btn-mic" id="btnMic" aria-label="Toggle voice listening">MIC</button>
+      <input type="text" class="cmd-input" id="cmdInput" placeholder="Ask Sora anything..." aria-label="Prompt input">
+      <button class="btn-send" id="btnSend" aria-label="Send message">&gt;</button>
+    </div>
+
+    <!-- Simulation Controls Bar -->
+    <div class="demo-controls" role="toolbar" aria-label="Interactive demo controls">
+      <span class="demo-tag">SIMULATION DEMO:</span>
+      <button class="demo-btn" id="btnStop" title="Return to IDLE state">Stop</button>
+      <button class="demo-btn" id="btnError" title="Simulate System Error">Simulate Error</button>
+      <button class="demo-btn" id="btnReset" title="Reset chat history">Reset Chat</button>
+    </div>
+
+    <!-- Subsystem Health Indicators -->
+    <footer class="hud-footer">
+      <span class="sys-dot on" id="dotMic">MIC +</span>
+      <span class="sys-dot on" id="dotAi">AI +</span>
+      <span class="sys-dot on" id="dotVoice">VOICE +</span>
+      <span class="sys-dot on" id="dotLocal">LOCAL +</span>
+    </footer>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

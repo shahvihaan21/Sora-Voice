@@ -76,15 +76,17 @@ class SpeechToText:
         """
         Listens in short dynamic chunks for Jarvis wake words with zero disk I/O.
         """
-        if not self.has_microphone:
-            await asyncio.sleep(2)
+        if not self.has_microphone or self._stop_event.is_set():
             return False
 
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
 
         def _record_and_check() -> bool:
+            if self._stop_event.is_set():
+                return False
             import sounddevice as sd
             import speech_recognition as sr
+            import time
 
             duration = 1.8  # Quick window
             try:
@@ -94,9 +96,21 @@ class SpeechToText:
                     channels=1,
                     dtype='float32'
                 )
-                sd.wait()
+                elapsed = 0.0
+                step = 0.1
+                while elapsed < duration:
+                    if self._stop_event.is_set():
+                        try:
+                            sd.stop()
+                        except Exception:
+                            pass
+                        return False
+                    time.sleep(step)
+                    elapsed += step
 
-                # Fast amplitude energy check before running recognizer
+                if self._stop_event.is_set():
+                    return False
+
                 max_amp = float(np.max(np.abs(recording)))
                 if max_amp < 0.012:
                     return False
@@ -121,23 +135,18 @@ class SpeechToText:
 
             return False
 
-        while True:
-            if not self.has_microphone:
-                await asyncio.sleep(2)
-                return False
-            if self._command_lock.locked():
-                await asyncio.sleep(0.15)
-                continue
+        if self._command_lock.locked():
+            return False
 
-            try:
-                detected = await loop.run_in_executor(None, _record_and_check)
-                if detected:
-                    log.info("Jarvis wake word recognized!")
-                    return True
-            except Exception as e:
-                log.debug(f"Wake loop error: {e}")
+        try:
+            detected = await loop.run_in_executor(None, _record_and_check)
+            if detected and not self._stop_event.is_set():
+                log.info("Jarvis wake word recognized!")
+                return True
+        except Exception as e:
+            log.debug(f"Wake loop error: {e}")
 
-            await asyncio.sleep(0.04)
+        return False
 
     async def listen_for_command(self) -> str:
         """

@@ -44,7 +44,8 @@ async def main_controller(window: MainWindow):
     listener_task = None
     active_response_task = None
 
-    # Initial greeting
+    # Initial greeting & active model
+    window.set_active_model(llm.model_id)
     window.set_system_status("Online", VisualizerMode.IDLE)
     welcome_msg = "jarvis voice online- how may i assist you"
     window.append_message("Jarvis", welcome_msg)
@@ -78,26 +79,41 @@ async def main_controller(window: MainWindow):
                 detected = await stt.listen_for_wake_word()
                 if detected and mic_enabled:
                     await trigger_listening()
+                else:
+                    await asyncio.sleep(0.1)
             except asyncio.CancelledError:
-                raise
+                break
             except Exception as e:
                 log.error(f"Error in voice listener loop: {e}")
-                await asyncio.sleep(1.0)
+                await asyncio.sleep(0.5)
 
     async def stop_all_operations():
         nonlocal mic_enabled, listener_task, active_response_task
         mic_enabled = False
+        stt.stop()
         if listener_task and not listener_task.done():
             listener_task.cancel()
-        stt.stop()
+            try:
+                await listener_task
+            except (asyncio.CancelledError, Exception):
+                pass
+            listener_task = None
+
         if active_response_task and not active_response_task.done():
             active_response_task.cancel()
+            try:
+                await active_response_task
+            except (asyncio.CancelledError, Exception):
+                pass
+            active_response_task = None
+
         while not command_queue.empty():
             try:
                 command_queue.get_nowait()
                 command_queue.task_done()
-            except asyncio.QueueEmpty:
+            except Exception:
                 break
+
         await tts.stop()
         window.set_system_status("Stopped", VisualizerMode.IDLE)
 
@@ -108,8 +124,11 @@ async def main_controller(window: MainWindow):
             return
         mic_enabled = True
         window.set_system_status("Listening...", VisualizerMode.LISTENING)
-        asyncio.create_task(trigger_listening())
+        stt._stop_event.clear()
+        if listener_task and not listener_task.done():
+            listener_task.cancel()
         listener_task = asyncio.create_task(voice_listener_task())
+        asyncio.create_task(trigger_listening())
 
     window.voice_trigger_requested.connect(on_manual_voice_trigger)
 
@@ -132,9 +151,41 @@ async def main_controller(window: MainWindow):
     except Exception:
         pass
 
+    def _on_model_changed(model_name: str):
+        llm.set_model(model_name)
+        log.info(f"Model switched to {model_name}")
+
+    try:
+        window.model_changed.connect(_on_model_changed)
+    except Exception:
+        pass
+
+    def _on_mute_toggled(muted: bool):
+        tts.is_muted = muted
+        if muted:
+            asyncio.create_task(tts.stop())
+
+    try:
+        window.mute_toggled.connect(_on_mute_toggled)
+    except Exception:
+        pass
+
+    def _on_clear_requested():
+        llm.conversation_history.clear()
+
+    try:
+        window.clear_requested.connect(_on_clear_requested)
+    except Exception:
+        pass
+
+    try:
+        window.stop_speech_requested.connect(_on_cancel)
+    except Exception:
+        pass
+
     async def _health():
         import httpx as _hx
-        _hc = _hx.AsyncClient(timeout=2.0)
+        _hc = _hx.AsyncClient(timeout=2.5)
         try:
             while True:
                 try:
@@ -143,9 +194,15 @@ async def main_controller(window: MainWindow):
                         host = getattr(config, "ollama_host", "http://localhost:11434")
                         r = await _hc.get(host.rstrip("/") + "/api/tags")
                         ai = (r.status_code == 200)
+                        if ai:
+                            data = r.json()
+                            models = [m.get("name") for m in data.get("models", []) if m.get("name")]
+                            if models:
+                                window.set_available_models(models, llm.model_id)
                     except Exception:
                         ai = False
                     window.set_health(mic=mic, ai=ai, voice=True, local=True)
+                    window.set_ollama_status(ai)
                 except Exception:
                     pass
                 await asyncio.sleep(15.0)
@@ -209,7 +266,8 @@ async def main_controller(window: MainWindow):
             try:
                 await active_response_task
             except asyncio.CancelledError:
-                log.info("Active Jarvis response cancelled by microphone stop.")
+                log.info("Active Jarvis response cancelled.")
+                await tts.stop()
             finally:
                 active_response_task = None
                 command_queue.task_done()

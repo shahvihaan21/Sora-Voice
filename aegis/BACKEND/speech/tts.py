@@ -16,6 +16,7 @@ class TextToSpeech:
         self.pitch = getattr(config, "tts_pitch", "") or self.voice_pack.pitch
         self.volume = getattr(config, "tts_volume", "") or self.voice_pack.volume
         self.is_speaking = False
+        self.is_muted = False
         self._lock = asyncio.Lock()
         self.on_start_callback: Optional[Callable[[], None]] = None
         self.on_end_callback: Optional[Callable[[], None]] = None
@@ -26,8 +27,7 @@ class TextToSpeech:
         self._started = False
 
     async def stop(self):
-        """Stop Windows playback immediately when the user disables the mic."""
-        # drop queued sentences so interruption is instant
+        """Stop playback immediately when requested."""
         try:
             while not self._sentence_queue.empty():
                 try:
@@ -37,6 +37,15 @@ class TextToSpeech:
                     break
         except Exception:
             pass
+
+        if self._player_task and not self._player_task.done():
+            self._player_task.cancel()
+            try:
+                await self._player_task
+            except (asyncio.CancelledError, Exception):
+                pass
+            self._player_task = None
+
         alias = self._active_alias
         if alias and hasattr(ctypes, "windll"):
             try:
@@ -45,12 +54,20 @@ class TextToSpeech:
             except Exception as e:
                 log.debug(f"Could not stop active speech: {e}")
         self._active_alias = None
-        self.is_speaking = False
+
         if self._pyttsx3_engine:
             try:
                 self._pyttsx3_engine.stop()
             except Exception:
                 pass
+
+        if self.is_speaking:
+            self.is_speaking = False
+            if self.on_end_callback:
+                try:
+                    self.on_end_callback()
+                except Exception:
+                    pass
 
     def _get_offline_engine(self):
         if self._pyttsx3_engine is None:
@@ -183,7 +200,7 @@ class TextToSpeech:
 
     async def speak_stream(self, text: str):
         """Enqueue one clause/sentence for immediate playback (non-blocking)."""
-        if not text or not text.strip():
+        if self.is_muted or not text or not text.strip():
             return
         await self._ensure_player()
         await self._sentence_queue.put(text.strip())
@@ -195,7 +212,7 @@ class TextToSpeech:
             pass
 
     async def speak(self, text: str):
-        if not text or not text.strip():
+        if self.is_muted or not text or not text.strip():
             return
         await self._ensure_player()
         # keep old API: full-text speak goes through the same player

@@ -25,7 +25,8 @@ class AppConfig(BaseModel):
 
     # Local AI (Ollama)
     ollama_host: str = Field(default_factory=lambda: os.getenv("OLLAMA_HOST", "http://localhost:11434").strip().rstrip("/"))
-    ollama_model: str = Field(default_factory=lambda: os.getenv("OLLAMA_MODEL", "jarvis-ft:latest").strip())
+    ollama_model: str = Field(default_factory=lambda: os.getenv("OLLAMA_MODEL", "qwen3:1.7b").strip())
+    vision_model: str = Field(default_factory=lambda: os.getenv("VISION_MODEL", "qwen2.5vl:7b").strip())
     ollama_timeout: float = Field(default_factory=lambda: float(os.getenv("OLLAMA_TIMEOUT", "15").strip()))
 
     # Speech & Voice
