@@ -150,14 +150,6 @@ class SpeechToText:
         except asyncio.CancelledError:
             self.stop()
             raise
-        if self._command_lock.locked():
-            return False
-
-        try:
-            detected = await loop.run_in_executor(None, _record_and_check)
-            if detected and not self._stop_event.is_set():
-                log.info("Jarvis wake word recognized!")
-                return True
         except Exception as e:
             log.debug(f"Wake loop error: {e}")
 
