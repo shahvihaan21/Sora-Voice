@@ -27,6 +27,10 @@ Sora is a local-first Windows desktop voice assistant. It combines a futuristic 
 
 ---
 
+> **Detailed Instructions**: See [`INSTRUCTIONS.md`](INSTRUCTIONS.md) for full step-by-step setup guides, troubleshooting, and one-click launch scripts (`run.bat` / `run.sh`) for your laptop.
+
+---
+
 ## Installation and Quick Start (Windows)
 
 ### 1. Clone & Setup Environment
