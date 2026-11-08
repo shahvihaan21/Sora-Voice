@@ -179,6 +179,7 @@ async def main_controller(window: MainWindow):
 
     try:
         window.cancel_requested.connect(_on_cancel)
+        window.stop_speech_requested.connect(_on_cancel)
     except Exception:
         pass
 
